@@ -19,14 +19,20 @@ export default function Layout() {
             description: "Contact us"
         }
     ]
+
+    const size = {
+        header: "5vh",
+        navbar: "3vh",
+        footer: "7vh"
+    }
     return (
         <Flex bg="red" minH="100vh" direction="column">
-            <Header/>
+            <Header headerSize={size.header}/>
             <Navbar links={links}/>
             <Box flex="1">
-                <Outlet/>
+                <Outlet context={{homeSize: "85vh"}}/>
             </Box>
-            <Footer/>
+            <Footer footerSize={size.footer}/>
         </Flex>
     );
 }

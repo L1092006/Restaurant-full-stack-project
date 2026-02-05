@@ -1,12 +1,12 @@
 import { Flex, Image, Text, Icon } from "@chakra-ui/react"
 import callAPI from "../utils/callAPI"
 import { useEffect, useState } from "react"
-import { LuLoader } from "react-icons/lu";
 import  placeholder from "../assets/img/placeholder.jpg"
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 
 export default function Home() {
   const [homeContent, setHomeContent ] = useState(null);
+  const { homeSize } = useOutletContext();
   const bannerSize = {
     w: {
       base: "75vw",
@@ -19,6 +19,7 @@ export default function Home() {
   }
   const bannerColor = "gray.700";
 
+
   // FIXME: improve callAPI if needed
   useEffect(() => {
     callAPI("homeContent").then(res => setHomeContent(res));
@@ -26,7 +27,7 @@ export default function Home() {
 
   return (
     <>
-      <Flex mx="6vw"  my="3vh" direction="column" align="center" gap="1vh" h="100%" flex="1">
+      <Flex px="6vw"  py="3vh" direction="column" align="center" gap="1vh" h={homeSize} flex="1" bg="yellow.100">
         <Text alignSelf="start" color={bannerColor} fontSize={{base: "32px", md: "48px"}} fontFamily="cursive">FEATURED</Text>
         { homeContent ? (
           <>

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { FaShoppingCart } from "react-icons/fa";
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Header() {
+export default function Header({headerSize}) {
   const { user, isAuthenticated, login, logout } = useAuth();
 
   //FIXME: complete them
@@ -14,7 +14,7 @@ export default function Header() {
   
   return (
     <div>
-    <Flex bg="green.800" height="5vh" alignItems="center" fontFamily="cursive" gap="1%" px="1%">
+    <Flex bg="green.800" height={headerSize} alignItems="center" fontFamily="cursive" gap="1%" px="1%">
         <Link to="/">
           <Text textStyle="3xl" color="white">The Restaurant</Text>
         </Link>
