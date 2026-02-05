@@ -1,0 +1,28 @@
+{
+    "description": "This is a featured banner!",
+    "path": null,
+
+    "recommendedItems": [
+        {
+            "id": 1,
+            "name": "item1",
+            "path": null
+        },
+        {
+            "id": 2,
+            "name": "item2",
+            "path": null
+        },
+        {
+            "id": 3,
+            "name": "item3",
+            "path": null
+        },
+        {
+            "id": 4,
+            "name": "item4",
+            "path": null
+        }
+    ]
+    
+}

@@ -1,6 +1,8 @@
 import { Outlet } from "react-router-dom"
+import { Box, Flex } from "@chakra-ui/react";
 import Header from "./Header";
 import Navbar from "./Navbar";
+import Footer from "./Footer";
 
 export default function Layout() {
     const links = [
@@ -18,11 +20,13 @@ export default function Layout() {
         }
     ]
     return (
-        <>
+        <Flex bg="red" minH="100vh" direction="column">
             <Header/>
             <Navbar links={links}/>
-            <Outlet/>
-            {/* <Footer/> */}
-        </>
+            <Box flex="1">
+                <Outlet/>
+            </Box>
+            <Footer/>
+        </Flex>
     );
 }

@@ -3,28 +3,49 @@ import callAPI from "../utils/callAPI"
 import { useEffect, useState } from "react"
 import { LuLoader } from "react-icons/lu";
 import  placeholder from "../assets/img/placeholder.jpg"
+import { Link } from "react-router-dom";
 
 export default function Home() {
-  const [featuredBanner, setFeaturedBanner ] = useState(null);
+  const [homeContent, setHomeContent ] = useState(null);
   const bannerSize = {
-    h: "35vh",
-    w: "75vw"
+    w: {
+      base: "75vw",
+      md: "50vw"
+    },
+    ratio: {
+      base: 6/4,
+      md: 6/2
+    }
   }
   const bannerColor = "gray.700";
 
+  // FIXME: improve callAPI if needed
   useEffect(() => {
-    callAPI("featuredBanner").then(res => setFeaturedBanner(res));
+    callAPI("homeContent").then(res => setHomeContent(res));
   }, [])
 
   return (
-    <Flex mx="6vw"  my="3vh" direction="column" align="center" gap="1vh">
-      <Text alignSelf="start" color={bannerColor} fontSize="5vh" fontFamily="cursive">FEATURED</Text>
-      { featuredBanner ? (
-        <>
-          {featuredBanner.path ? <Image src={featuredBanner.path} h={bannerSize.h} w={bannerSize.w}/> : <Image src={placeholder} h={bannerSize.h} w={bannerSize.w}/>}
-          <Text color={bannerColor} fontSize="2vh" fontFamily="cursive"> {featuredBanner.description} </Text>
-        </>
-      ) : <Icon as={LuLoader} color="gray.400" h={bannerSize.h} w={bannerSize.w}/>}
-    </Flex>
+    <>
+      <Flex mx="6vw"  my="3vh" direction="column" align="center" gap="1vh" h="100%" flex="1">
+        <Text alignSelf="start" color={bannerColor} fontSize={{base: "32px", md: "48px"}} fontFamily="cursive">FEATURED</Text>
+        { homeContent ? (
+          <>
+            <Image src={homeContent.path ? homeContent.path : placeholder} aspectRatio={bannerSize.ratio} w={bannerSize.w}/>
+            <Text color={bannerColor} fontSize={{base: "16px", md: "24px"}} fontFamily="cursive"> {homeContent.description} </Text>
+          </>
+        ) : <Image src={placeholder} aspectRatio={bannerSize.ratio} w={bannerSize.w}/>}
+        {homeContent ? (
+        <Flex mt="auto">
+          {homeContent.recommendedItems.map(item => {
+            return (
+              <Link to={`/${item.id}`}  key={item.id}><Image src={item.path ? item.path : placeholder}/></Link>
+            )
+          })}
+        </Flex>
+      ): <Text>Loading</Text>}
+      </Flex>
+
+      
+    </>
   )
 }
