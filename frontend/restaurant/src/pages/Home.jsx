@@ -1,4 +1,4 @@
-import { Flex, Image, Text, Card } from "@chakra-ui/react"
+import { Flex, Image, Text, Card, Heading, Box } from "@chakra-ui/react"
 import callAPI from "../utils/callAPI"
 import { useEffect, useState } from "react"
 import  placeholder from "../assets/img/placeholder.jpg"
@@ -17,7 +17,7 @@ export default function Home() {
     w: {
       base: "120vw",
       lg: "60vw"
-    }
+    },
   };
   const bannerColor = "gray.700";
 
@@ -33,14 +33,19 @@ export default function Home() {
     },
 
     size: {
-      ratio: 1,
+      ratio: {
+        base: 6/4,
+        xl: 6/2
+      },
       w: {
         base: "50vw",
         md: "20vw",
-        xl: "15vw",
-        "2xl": "12vw"
       }
-    }
+    },
+
+    hover: {
+        shadow: "lg"
+      }
   };
 
 
@@ -52,7 +57,7 @@ export default function Home() {
   return (
     <>
       <Flex px="6vw"  py="3vh" direction="column" align="center" gap="1vh" minH={homeSize} bg="yellow.100" >
-        <Text alignSelf="start" color={bannerColor} fontSize={{base: "32px", md: "48px"}} fontFamily="cursive">FEATURED</Text>
+        <Heading as="h1" alignSelf="start" color={bannerColor}  fontFamily="cursive">FEATURED</Heading>
         { homeContent ? (
           <>
             <Image src={homeContent.path ? homeContent.path : placeholder} w={bannerSize.w} borderRadius="3%" aspectRatio={bannerSize.ratio}/>
@@ -60,19 +65,27 @@ export default function Home() {
           </>
         ) : <Image src={placeholder} aspectRatio={bannerSize.ratio} w={bannerSize.w} flex="1" borderRadius="3%"/>}
 
-        {homeContent ? (
-        <Flex flex="1 0 0" align="center" gap={itemsConfig.gap} direction={itemsConfig.direction}>
-          {homeContent.recommendedItems.map(item => {
-            return (
-              <Link to={`/${item.id}`}  key={item.id}>
-               
-                  <Image src={item.path ? item.path : placeholder} w={itemsConfig.size.w} alt={`An image of ${item.name}`}/>
-                
-              </Link>
-            )
-          })}
+          <Flex flex="1 0 0" alignSelf="stretch" align="center" >
+            <Box flex="1">
+              <Heading as={"h1"} fontFamily="cursive" textAlign="left" mb="2vh" color={bannerColor}>Trending this week:</Heading>
+              {homeContent ? (
+              <Flex align="center" justify="space-around" gap="1vh"  direction={itemsConfig.direction} >
+                {homeContent.recommendedItems.map(item => {
+                  return (
+                    <Link to={`/${item.id}`}  key={item.id}>
+                      <Card.Root w={itemsConfig.size.w} _hover={itemsConfig.hover}>
+                          <Image  src={item.path ? item.path : placeholder} alt={`An image of ${item.name}`}  aspectRatio={itemsConfig.size.ratio} />
+                        <Card.Body>
+                          <Text>Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.</Text>
+                        </Card.Body>
+                      </Card.Root>
+                    </Link>
+                  )
+                })}
+              </Flex>
+              ): <Text>Loading</Text>}
+          </Box>
         </Flex>
-      ): <Text>Loading</Text>}
       </Flex>
 
       
