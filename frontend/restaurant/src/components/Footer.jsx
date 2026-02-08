@@ -1,9 +1,9 @@
-import { Box } from "@chakra-ui/react"
+import { Flex, Text } from "@chakra-ui/react"
 
 export default function Footer({footerSize}) {
     return (
-        <Box bg="green.700" mt="auto" h={footerSize}>
-            This is Footer
-        </Box>
+        <Flex bg="green.700" h={footerSize} justify="flex-start">
+            <Text fontFamily="cursive" mt="1vh" ml="1vw">This is Footer</Text>
+        </Flex>
     )
 }
