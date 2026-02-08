@@ -19,7 +19,7 @@ export default function Home() {
       lg: "60vw"
     },
   };
-  const bannerColor = "gray.700";
+  const textColor = "gray.700";
 
   const itemsConfig = {
     direction: {
@@ -48,6 +48,8 @@ export default function Home() {
       }
   };
 
+  const defaultFont = "cursive";
+
 
   // FIXME: improve callAPI if needed
   useEffect(() => {
@@ -56,27 +58,27 @@ export default function Home() {
 
   return (
     <>
-      <Flex px="6vw"  py="3vh" direction="column" align="center" gap="1vh" minH={homeSize} bg="yellow.100" >
-        <Heading as="h1" alignSelf="start" color={bannerColor}  fontFamily="cursive">FEATURED</Heading>
+      <Flex px="6vw"  py="3vh" direction="column" align="center" gap="1vh" minH={homeSize} fontFamily={defaultFont} Text>
+        <Heading as="h1" alignSelf="start" color={textColor} fontFamily={defaultFont}>FEATURED</Heading>
         { homeContent ? (
           <>
             <Image src={homeContent.path ? homeContent.path : placeholder} w={bannerSize.w} borderRadius="3%" aspectRatio={bannerSize.ratio}/>
-            <Text color={bannerColor} fontSize={{base: "16px", md: "24px"}} fontFamily="cursive"> {homeContent.description} </Text>
+            <Text fontSize={{base: "16px", md: "24px"}}> {homeContent.description} </Text>
           </>
         ) : <Image src={placeholder} aspectRatio={bannerSize.ratio} w={bannerSize.w} flex="1" borderRadius="3%"/>}
 
           <Flex flex="1 0 0" alignSelf="stretch" align="center" >
             <Box flex="1">
-              <Heading as={"h1"} fontFamily="cursive" textAlign="left" mb="2vh" color={bannerColor}>Trending this week:</Heading>
+              <Heading as={"h1"} fontFamily={defaultFont} textAlign="left" mb="2vh" color={textColor}>Trending this week:</Heading>
               {homeContent ? (
               <Flex align="center" justify="space-around" gap="1vh"  direction={itemsConfig.direction} >
                 {homeContent.recommendedItems.map(item => {
                   return (
-                    <Link to={`/${item.id}`}  key={item.id}>
+                    <Link to={`/menu/${item.id}`}  key={item.id}>
                       <Card.Root w={itemsConfig.size.w} _hover={itemsConfig.hover}>
                           <Image  src={item.path ? item.path : placeholder} alt={`An image of ${item.name}`}  aspectRatio={itemsConfig.size.ratio} />
-                        <Card.Body>
-                          <Text>Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.</Text>
+                        <Card.Body bg="whitesmoke">
+                          <Text color={textColor}>{item.description}</Text>
                         </Card.Body>
                       </Card.Root>
                     </Link>

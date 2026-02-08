@@ -26,7 +26,7 @@ export default function Layout() {
         footer: "7vh"
     }
     return (
-        <Flex bg="red" minH="100vh" direction="column">
+        <Flex minH="100vh" direction="column">
             <Header headerSize={size.header}/>
             <Navbar links={links}/>
             <Box flex="1">

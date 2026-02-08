@@ -35,6 +35,7 @@ export default function Header({headerSize}) {
               <Avatar.Fallback name={user.username}/>
             </Avatar.Root>
           </Link>
+          {/* FIXME: add  Link to the login page for the login/signup button*/}
           <Button onClick={logoutHandler} variant="outline" borderColor="green.700" _hover={{backgroundColor: "green.700"}}>
             Logout
           </Button>

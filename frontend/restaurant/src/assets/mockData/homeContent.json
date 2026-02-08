@@ -6,22 +6,26 @@
         {
             "id": 1,
             "name": "item1",
-            "path": null
+            "path": null,
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium."
         },
         {
             "id": 2,
             "name": "item2",
-            "path": null
+            "path": null,
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium."
         },
         {
             "id": 3,
             "name": "item3",
-            "path": null
+            "path": null,
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium."
         },
         {
             "id": 4,
             "name": "item4",
-            "path": null
+            "path": null,
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium."
         }
     ]
     
