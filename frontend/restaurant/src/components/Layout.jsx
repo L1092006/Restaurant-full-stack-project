@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom"
+import { Outlet } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
 import Header from "./Header";
 import Navbar from "./Navbar";
@@ -30,7 +30,7 @@ export default function Layout() {
             <Header headerSize={size.header}/>
             <Navbar links={links}/>
             <Box flex="1">
-                <Outlet context={{homeSize: "85vh"}}/>
+                <Outlet context={{mainSize: "85vh"}}/>
             </Box>
             <Footer footerSize={size.footer}/>
         </Flex>

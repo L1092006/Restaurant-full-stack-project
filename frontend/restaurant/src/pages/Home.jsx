@@ -1,12 +1,12 @@
-import { Flex, Image, Text, Card, Heading, Box } from "@chakra-ui/react"
-import callAPI from "../utils/callAPI"
-import { useEffect, useState } from "react"
-import  placeholder from "../assets/img/placeholder.jpg"
+import { Flex, Image, Text, Card, Heading, Box } from "@chakra-ui/react";
+import callAPI from "../utils/callAPI";
+import { useEffect, useState } from "react";
+import  placeholder from "../assets/img/placeholder.jpg";
 import { Link, useOutletContext } from "react-router-dom";
 
 export default function Home() {
   const [homeContent, setHomeContent ] = useState(null);
-  const { homeSize } = useOutletContext();
+  const { mainSize } = useOutletContext();
   const bannerSize = {
     ratio: {
       base: 6/4,
@@ -58,8 +58,8 @@ export default function Home() {
 
   return (
     <>
-      <Flex px="6vw"  py="3vh" direction="column" align="center" gap="1vh" minH={homeSize} fontFamily={defaultFont} Text>
-        <Heading as="h1" alignSelf="start" color={textColor} fontFamily={defaultFont}>FEATURED</Heading>
+      <Flex px="6vw"  py="3vh" direction="column" align="center" gap="1vh" minH={mainSize} fontFamily={defaultFont} color={textColor}>
+        <Heading as="h1" alignSelf="start" color={textColor} fontFamily={defaultFont} fontSize="3xl">FEATURED</Heading>
         { homeContent ? (
           <>
             <Image src={homeContent.path ? homeContent.path : placeholder} w={bannerSize.w} borderRadius="3%" aspectRatio={bannerSize.ratio}/>
@@ -69,13 +69,13 @@ export default function Home() {
 
           <Flex flex="1 0 0" alignSelf="stretch" align="center" >
             <Box flex="1">
-              <Heading as={"h1"} fontFamily={defaultFont} textAlign="left" mb="2vh" color={textColor}>Trending this week:</Heading>
+              <Heading as={"h1"} fontFamily={defaultFont} textAlign="left" mb="2vh" color={textColor} fontSize="3xl">Trending this week:</Heading>
               {homeContent ? (
               <Flex align="center" justify="space-around" gap="1vh"  direction={itemsConfig.direction} >
                 {homeContent.recommendedItems.map(item => {
                   return (
                     <Link to={`/menu/${item.id}`}  key={item.id}>
-                      <Card.Root w={itemsConfig.size.w} _hover={itemsConfig.hover}>
+                      <Card.Root  _hover={itemsConfig.hover}>
                           <Image  src={item.path ? item.path : placeholder} alt={`An image of ${item.name}`}  aspectRatio={itemsConfig.size.ratio} />
                         <Card.Body bg="whitesmoke">
                           <Text color={textColor}>{item.description}</Text>
@@ -87,7 +87,9 @@ export default function Home() {
               </Flex>
               ): <Text>Loading</Text>}
           </Box>
+          
         </Flex>
+        
       </Flex>
 
       

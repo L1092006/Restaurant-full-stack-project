@@ -12,11 +12,11 @@ export default function AuthProvider({ children }) {
     const [isAuthenticated, setAutheticated] = useState(true);
 
     //FIXME: implement the login and logout fucntion
-    const login = (username, password) => {
+    const login = async (username, password) => {
         setUser(defaultUser);
         setAutheticated(true);
     }
-    const logout = () => {
+    const logout = async () => {
         setUser(null);
         setAutheticated(false);
     }
