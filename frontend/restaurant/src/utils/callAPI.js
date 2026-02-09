@@ -6,4 +6,5 @@ export default async function callAPI(path,  method="GET", args={}) {
     if(path === "homeContent") return homeContent;
     else if(path === "login") return {message: "Successfully!"};
     else if(path === "categories") return menuContent.categories;
+    else if(path === "items") return menuContent.items;
 }

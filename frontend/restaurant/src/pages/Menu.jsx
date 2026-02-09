@@ -7,26 +7,54 @@ export default function Menu() {
     const { mainSize } = useOutletContext();
 
     const [ categories, setCategories ] = useState(null);
+    const [ itemsInCat, setItemsInCat ] = useState(null);
 
+    // FIXME: Improve if needed
     useEffect(() => {
-        callAPI("categories").then(res => setCategories(res));
-    })
+        async function getContent() {
+            const cats = await callAPI("categories");
+            const allItems = await callAPI("items");
+            const tempItems = new Map();
+            for(let cat of cats) {
+                tempItems.set(cat.id, [])
+            }
+            for(let item of allItems) {
+                tempItems.get(item.category).push(item);
+            }
+            setCategories(cats)
+            setItemsInCat(tempItems);
+        };
+        getContent();
+    }, [])
 
     const tabStyle = {
         fontFamily: "cursive",
         fontSize: "1rem",
-        color: "white.900"
+        color: "gray.700"
+    }
+
+    if(!categories || !itemsInCat) {
+        return <Text color={tabStyle.color} fontFamily={tabStyle.fontFamily}>Loading</Text>
     }
 
     return (
-        <Tabs.Root orientation="vertical" minH={mainSize} fontFamily={tabStyle.fontFamily} color={tabStyle.color}>
-            <Tabs.List bg="gray.500">
-                {categories ? categories.map(cat => {
+        <Tabs.Root orientation="vertical" defaultValue={categories[0].id} minH={mainSize} fontFamily={tabStyle.fontFamily} color={tabStyle.color}>
+            <Tabs.List bg="gray.300">
+                {categories.map(cat => {
                     return (
-                        <Tabs.Trigger value={cat.id} key={cat.id} color="whiteAlpha.950">{cat.name}</Tabs.Trigger>
+                        <Tabs.Trigger value={cat.id} key={cat.id} color={tabStyle.color}>{cat.name}</Tabs.Trigger>
                     )
-                }) : <Text>Loading</Text>}
+                })}
             </Tabs.List>
+
+            {categories.map(cat => {
+                return (
+                    <Tabs.Content value={cat.id} key={cat.id} bg="red">
+                        
+                    </Tabs.Content>
+                )
+            })}
+
         </Tabs.Root>
     )
 }

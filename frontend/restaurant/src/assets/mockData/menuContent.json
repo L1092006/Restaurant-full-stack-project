@@ -12,5 +12,100 @@
             "id": 3,
             "name": "Category 3"
         }
+    ],
+
+    "items": [
+        {
+            "id": 1,
+            "title": "Item1",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 1
+        },
+        {
+            "id": 2,
+            "title": "Item2",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 1
+        },
+        {
+            "id": 3,
+            "title": "Item3",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 1
+        },
+        {
+            "id": 4,
+            "title": "Item4",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 1
+        },
+        {
+            "id": 5,
+            "title": "Item5",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 1
+        },
+
+        {
+            "id": 6,
+            "title": "Item6",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 2
+        },
+        {
+            "id": 7,
+            "title": "Item7",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 2
+        },
+        {
+            "id": 8,
+            "title": "Item8",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 2
+        },
+        {
+            "id": 9,
+            "title": "Item9",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 2
+        },
+        {
+            "id": 10,
+            "title": "Item10",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 2
+        },
+
+        {
+            "id": 11,
+            "title": "Item11",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 3
+        },
+        {
+            "id": 12,
+            "title": "Item12",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 3
+        },
+        {
+            "id": 13,
+            "title": "Item13",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 3
+        },
+        {
+            "id": 14,
+            "title": "Item14",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 3
+        },
+        {
+            "id": 15,
+            "title": "Item15",
+            "description": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo, eius doloribus voluptates pariatur ut laudantium.",
+            "category": 3
+        }
     ]
 }
