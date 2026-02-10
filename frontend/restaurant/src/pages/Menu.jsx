@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router-dom";
-import { Tabs, Text } from "@chakra-ui/react";
+import { Tabs, Text, Card } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import callAPI from "../utils/callAPI";
 
@@ -38,8 +38,8 @@ export default function Menu() {
     }
 
     return (
-        <Tabs.Root orientation="vertical" defaultValue={categories[0].id} minH={mainSize} fontFamily={tabStyle.fontFamily} color={tabStyle.color}>
-            <Tabs.List bg="gray.300">
+        <Tabs.Root defaultValue={categories[0].id} fitted minH={mainSize} colorPalette="green" fontFamily={tabStyle.fontFamily} color={tabStyle.color}>
+            <Tabs.List bg="gray.300" >
                 {categories.map(cat => {
                     return (
                         <Tabs.Trigger value={cat.id} key={cat.id} color={tabStyle.color}>{cat.name}</Tabs.Trigger>
@@ -49,7 +49,7 @@ export default function Menu() {
 
             {categories.map(cat => {
                 return (
-                    <Tabs.Content value={cat.id} key={cat.id} bg="red">
+                    <Tabs.Content value={cat.id} key={cat.id} >
                         
                     </Tabs.Content>
                 )
