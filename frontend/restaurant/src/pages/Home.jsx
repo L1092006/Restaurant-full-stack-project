@@ -71,7 +71,7 @@ export default function Home() {
             <Box flex="1">
               <Heading as={"h1"} fontFamily={defaultFont} textAlign="left" mb="2vh" color={textColor} fontSize="3xl">Trending this week:</Heading>
               {homeContent ? (
-              <Flex align="center" justify="space-around" gap="1vh"  direction={itemsConfig.direction} >
+              <Flex align="center" justify="space-around" gap="2rem"  direction={itemsConfig.direction} >
                 {homeContent.recommendedItems.map(item => {
                   return (
                     <Link to={`/menu/${item.id}`}  key={item.id}>

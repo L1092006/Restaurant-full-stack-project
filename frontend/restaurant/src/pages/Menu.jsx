@@ -1,13 +1,16 @@
-import { useOutletContext } from "react-router-dom";
-import { Tabs, Text, Card } from "@chakra-ui/react";
+import { useOutletContext, Link } from "react-router-dom";
+import { Tabs, Text, Card, Image, Grid, Heading } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import callAPI from "../utils/callAPI";
+import  placeholder from "../assets/img/placeholder.jpg";
 
 export default function Menu() {
     const { mainSize } = useOutletContext();
 
     const [ categories, setCategories ] = useState(null);
     const [ itemsInCat, setItemsInCat ] = useState(null);
+
+    
 
     // FIXME: Improve if needed
     useEffect(() => {
@@ -50,7 +53,19 @@ export default function Menu() {
             {categories.map(cat => {
                 return (
                     <Tabs.Content value={cat.id} key={cat.id} >
-                        
+                        <Grid templateColumns="repeat(auto-fit, 20rem)"  justifyContent="center" gap="2rem" px="4vw" pt="1rem" pb="2rem">
+                            {itemsInCat.get(cat.id).map(item => (
+                                <Link to={`/menu/${item.id}`} key={item.id}>
+                                    <Card.Root  color={tabStyle.color} colorPalette="white" _hover={{shadow: "lg"}}> 
+                                        <Image src={item.path ? item.path : placeholder} aspectRatio={6/4}/>
+                                        <Card.Body bg="whitesmoke">
+                                            <Heading as="h3" mb="0.5rem">{item.title}</Heading>
+                                            <Text>{item.description}</Text>
+                                        </Card.Body>
+                                    </Card.Root>
+                                </Link>
+                            ))}
+                        </Grid>
                     </Tabs.Content>
                 )
             })}

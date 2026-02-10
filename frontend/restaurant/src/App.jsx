@@ -20,7 +20,7 @@ function App() {
           <Route path="/cart" element={<Implementing/>}/>
           <Route path="/account" element={<Implementing/>}/>
           <Route path="/about" element={<Implementing/>}/>
-          <Route path="/menu:id" element={<Implementing/>}/>
+          <Route path="/menu/:id" element={<Implementing/>}/>
           <Route path="/contact" element={<Implementing/>}/>
         </Route>
       </Routes>
