@@ -34,11 +34,12 @@ export default function Header({headerSize}) {
               <Avatar.Fallback name={user.username}/>
             </Avatar.Root>
           </Link>
-          {/* FIXME: add  Link to the login page for the login/signup button*/}
+          {/* Log out button */}
           <Button onClick={logoutHandler} variant="outline" borderColor="green.700" _hover={{backgroundColor: "green.700"}}>
             Logout
           </Button>
         </>
+        // Login buttton
         : <Button as={Link} variant="outline" to="/login" borderColor="green.700" fontFamily="cursive" color="white" _hover={{backgroundColor: "green.700", color: "white"}}>Login / Signup</Button> }
     </Flex>
     </div>
