@@ -8,7 +8,7 @@ export default function Header({headerSize}) {
 
   //FIXME: complete logout and remove login handler
   const logoutHandler = () => logout();
-  const loginHandler = () => login();
+
 
   
   return (

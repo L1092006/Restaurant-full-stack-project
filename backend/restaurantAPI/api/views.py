@@ -18,14 +18,16 @@ class LoginView(APIView):
         
 
         # Authenticate
-        user = authenticate(username, password)
+        user = authenticate(username=username, password=password)
         if not user:
             return Response({"error": "Invalid credentials"}, status.HTTP_400_BAD_REQUEST)
         
         # Generate the refresh token
         refresh = RefreshToken.for_user(user)
         
-        response = Response({"message": "Successfully logged in!"}, status.HTTP_200_OK)
+
+        # Return the user email but not username because the frontend already had username
+        response = Response({"message": "Successfully logged in!", "email": user.email}, status.HTTP_200_OK)
 
 
         # Save the tokens in Cookie
@@ -39,7 +41,7 @@ class LoginView(APIView):
             samesite="None"
         )
         response.set_cookie(
-            "refresh",
+            "refresh_token",
             str(refresh),
             httponly=True,
             # Set secure to True in production

@@ -26,8 +26,11 @@ export default function Login() {
     const { login } = useAuth();
 
     //FIXME: improve the handler if needed
-    const mySubmitHandler = (data) => {
-        login(data.username, data.password).then(res => navigate('/'));
+    const mySubmitHandler = async (data) => {
+        const success = await login(data.username, data.password);
+        if(success) navigate('/');
+        
+        // Add handling if the password is wrong 
     }
 
     const style = {
