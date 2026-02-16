@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import baseCallAPI from "../utils/baseCallAPI";
 
 const AuthContext = createContext();
 const backUrl = import.meta.env.VITE_BACKEND_URL
@@ -8,8 +9,6 @@ export default function AuthProvider({ children }) {
     
     const [user, setUser] = useState(null);
     const [isAuthenticated, setAutheticated] = useState(false);
-
-    //FIXME: implement the login and logout fucntion
 
     // Return true if success, false otherwise
     const login = async (username, password) => {
@@ -45,8 +44,11 @@ export default function AuthProvider({ children }) {
         
     }
 
+    // Wrapper function which auto provides logout to baseCallAPI
+    const callAPI = (url, options={}) => baseCallAPI(url, options, logout);
+
     return (
-        <AuthContext.Provider value={{user, isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{user, isAuthenticated, login, logout, callAPI }}>
             {children}
         </AuthContext.Provider>
     );
