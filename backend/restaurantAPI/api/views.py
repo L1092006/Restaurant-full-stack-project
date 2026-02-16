@@ -5,7 +5,14 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
+
 # Create your views here.
+
+
+# AUTHENTICATION VIEWS
+# Set cookie expired time to 7 days
+cookie_expired_time = 60 * 60 * 24 * 7
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get("username")
@@ -38,7 +45,8 @@ class LoginView(APIView):
             httponly=True,
             # Set secure to True in production
             secure=False,
-            samesite="None"
+            samesite="None",
+            max_age=cookie_expired_time
         )
         response.set_cookie(
             "refresh_token",
@@ -46,7 +54,8 @@ class LoginView(APIView):
             httponly=True,
             # Set secure to True in production
             secure=False,
-            samesite="None"
+            samesite="None",
+            max_age=cookie_expired_time
         )
          
         return response
@@ -72,7 +81,8 @@ class RefreshView(APIView):
             httponly=True,
             # Set secure to True in production
             secure=False,
-            samesite="None"
+            samesite="None",
+            max_age=cookie_expired_time
         )
 
         return response
