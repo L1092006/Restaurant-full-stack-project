@@ -1,4 +1,5 @@
 import { Box, Flex, Text, Spacer, Avatar, Button, IconButton, Badge } from '@chakra-ui/react';
+import { toaster } from "../components/ui/toaster"
 import { Link } from 'react-router-dom';
 import { FaShoppingCart } from "react-icons/fa";
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +8,17 @@ export default function Header({headerSize}) {
   const { user, isAuthenticated, login, logout } = useAuth();
 
   //FIXME: complete logout and remove login handler
-  const logoutHandler = () => logout();
+  const logoutHandler = async () => {
+    const success = await logout();
+    if(!success) {
+      toaster.create({
+        title: "Error",
+        description: "Something went wrong, please try again later.",
+        type: "error",
+        closable: true
+      })
+    }
+  }
 
 
   

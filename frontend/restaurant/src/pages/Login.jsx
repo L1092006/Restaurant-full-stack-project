@@ -1,4 +1,6 @@
 import { Box, Field, Input, Button, Flex } from "@chakra-ui/react";
+import { toaster } from "../components/ui/toaster";
+import { PasswordInput } from "../components/ui/password-input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import  { useForm } from "react-hook-form";
@@ -29,8 +31,16 @@ export default function Login() {
     const mySubmitHandler = async (data) => {
         const success = await login(data.username, data.password);
         if(success) navigate('/');
+        else {
+            console.log('here');
+            toaster.create({
+                title: "Error",
+                description: "Invalid username or password",
+                type: "error",
+                closable: true
+            });
+        }
         
-        // Add handling if the password is wrong 
     }
 
     const style = {
@@ -48,14 +58,14 @@ export default function Login() {
                 <Flex direction="column" gap={style.gap}>
                     <Field.Root invalid={!!errors.username}>
                         <Field.Label fontSize={style.fontSize} mb="1rem">Username</Field.Label>
-                        <Input {...register("username")} size="xl" fontSize="1.3rem"/>
+                        <Input {...register("username")} size="xl" fontSize="1.3rem" bg="white"/>
                         <Field.ErrorText>{errors.username?.message}</Field.ErrorText>
                     </Field.Root>
 
                     <Field.Root  invalid={!!errors.password} fontSize={style.fontSize}>
                         <Field.Label fontSize={style.fontSize} mb="1rem">Password</Field.Label>
-                        <Input {...register("password")} size="xl" fontSize="1.3rem"/>
-                        <Field.ErrorText>{errors.username?.message}</Field.ErrorText>
+                        <PasswordInput {...register("password")} size="xl" fontSize="1.3rem" bg="white"/>
+                        <Field.ErrorText>{errors.password?.message}</Field.ErrorText>
                     </Field.Root>
 
                     <Button type="submit" alignSelf="center" bg="green.800" color="white" h="3rem" w="8rem" _hover={{bg: "green.600"}} fontSize={style.fontSize}>Submit</Button>
