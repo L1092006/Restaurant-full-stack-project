@@ -9,11 +9,11 @@ export default function Header({headerSize}) {
 
   //FIXME: complete logout and remove login handler
   const logoutHandler = async () => {
-    const success = await logout();
-    if(!success) {
+    const res = await logout();
+    if(!res.success) {
       toaster.create({
-        title: "Error",
-        description: "Something went wrong, please try again later.",
+        title: res.message,
+        description: "PLease try again or wait and try later.",
         type: "error",
         closable: true
       })

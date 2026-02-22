@@ -29,13 +29,12 @@ export default function Login() {
 
     //FIXME: improve the handler if needed
     const mySubmitHandler = async (data) => {
-        const success = await login(data.username, data.password);
-        if(success) navigate('/');
+        const res = await login(data.username, data.password);
+        if(res.success) navigate('/');
         else {
-            console.log('here');
             toaster.create({
-                title: "Error",
-                description: "Invalid username or password",
+                title: res.message,
+                description: "Please try again or wait and try later",
                 type: "error",
                 closable: true
             });

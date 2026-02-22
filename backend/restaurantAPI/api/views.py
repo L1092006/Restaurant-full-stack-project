@@ -22,7 +22,7 @@ ALLOWED_ORIGINS = env.list("ALLOWED_ORIGINS")
 
 # AUTHENTICATION VIEWS
 REFRESH_COOKIE = {
-    "name": "refresh",
+    "name": "refresh_token",
     "httpOnly": True,
     # PRODUCTION - change secure to True
     "secure": False,
@@ -53,7 +53,7 @@ class LoginView(APIView):
         
 
         # Return the user email but not username because the frontend already had username
-        response = Response({"message": "Info: Successfully logged in!", "access": str(refresh.access_token), "email": user.email}, status.HTTP_200_OK)
+        response = Response({"message": "Info: Successfully logged in!", "access_token": str(refresh.access_token), "email": user.email}, status.HTTP_200_OK)
 
 
         # Save the tokens in Cookie
@@ -108,7 +108,7 @@ class RefreshView(APIView):
         # Generate a new refresh token
         new_refresh = RefreshToken.for_user(user)
 
-        response = Response({"message": message, "access": str(new_refresh.access_token)}, status.HTTP_200_OK)
+        response = Response({"message": message, "access_token": str(new_refresh.access_token)}, status.HTTP_200_OK)
         # Generate and save a new refresh token token in the cookies
         response.set_cookie(
             REFRESH_COOKIE["name"],
