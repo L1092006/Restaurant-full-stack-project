@@ -42,7 +42,7 @@ export default function Header({headerSize}) {
         { isAuthenticated ? <>
           <Link to="/account">
             <Avatar.Root>
-              <Avatar.Fallback name={user.username}/>
+              <Avatar.Fallback name={user && user.username}/>
             </Avatar.Root>
           </Link>
           {/* Log out button */}

@@ -226,25 +226,28 @@ export default function AuthProvider({ children }) {
             try {
                 // Refresh tokens
                 const newAccessToken = await callRefresh();
-
                 // Fetch user info
-                const res = await fetch(`${backUrl}/users/me`, {
-                    credentials: "include"
+                const res = await fetch(`${backUrl}/users/me/`, {
+                    credentials: "include",
+                    headers: {
+                        "Authorization": `Bearer ${newAccessToken}`
+                    }
                 });
-
+                
                 if(res.ok) {
                     const user = await res.json();
                     setUser(user);
-                    setAuthenticated(true);
+                    
                 }
             }
             catch (e) {
+                console.log("here")
                 console.log(e.message);
                 logout();
             }
         }
         init();
-    })
+    },[])
 
     const value = useMemo(() => ({ user, isAuthenticated, login, logout, callAPI }), [ user, isAuthenticated, login, logout, callAPI ])
     return (

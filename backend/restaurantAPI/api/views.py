@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import AllowAny
+
 import environ
 from pathlib import Path
 from .serializers import *
@@ -27,7 +29,7 @@ REFRESH_COOKIE = {
     "name": "refresh_token",
     "httpOnly": True,
     # PRODUCTION - change secure to True
-    "secure": False,
+    "secure": True,
     "samesite": "None",
     "path": "/api/auth/",
     # Set cookie expired time to 7 days
@@ -82,8 +84,6 @@ class RefreshView(APIView):
         # Check if request come from an allowed origin. Allow if there's no Origin header
         origin = request.headers.get("Origin")
         if origin and not origin in ALLOWED_ORIGINS:
-            print(origin)
-            print(ALLOWED_ORIGINS)
             return Response({"message": "Error: Forbidden origin"}, status=status.HTTP_403_FORBIDDEN)
        
         refresh_str = request.COOKIES.get(REFRESH_COOKIE["name"])
@@ -157,7 +157,8 @@ class SingleCustomerView(APIView):
 
     def get(self, request, pk=None):
         # Return 403 if it doesn't request the current user and the user doesn't have view_user perm to query by user id
-        if pk in ("me", None) and not request.user.has_perm('auth.view_user'):
+        print(pk)
+        if pk not in ("me", None) and not request.user.has_perm('auth.view_user'):
             return Response({"message": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         
 
@@ -171,4 +172,5 @@ class SingleCustomerView(APIView):
        
         seri_customer = UserSerializer(customer)
         return Response(seri_customer.data, status=status.HTTP_200_OK)
+
     
