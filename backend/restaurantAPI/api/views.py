@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 import environ
 from pathlib import Path
+from .serializers import *
 
 
 
@@ -139,3 +141,22 @@ class LogoutView(APIView):
             response = Response({"message": "Info: Successfully Logout!"}, status=status.HTTP_200_OK)
         response.delete_cookie(REFRESH_COOKIE["name"], path=REFRESH_COOKIE["path"])
         return response
+    
+
+
+# NORMAL VIEWS
+
+class SingleCustomerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk=None):
+        # Get the customer
+        User = get_user_model()
+        customer = get_object_or_404(User, pk=pk)
+
+        # Return 403 if the customer object is not the current user or the user doesn't have view_user perm
+        if request.user is not customer and not request.user.has_perm('auth.view_user'):
+            return Response({"message": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        
+        seri_customer = CustomerSerializer(request.user)
+        return Response(seri_customer.data, status=status.HTTP_200_OK)
