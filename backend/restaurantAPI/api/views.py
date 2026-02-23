@@ -34,28 +34,32 @@ REFRESH_COOKIE = {
     "max_age": 60 * 60 * 24 * 7
 }
 
+
+# Get the User model
+User = get_user_model()
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
 
         if not username:
-            return Response({"error": "Missing username"}, status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Missing username"}, status=status.HTTP_400_BAD_REQUEST)
         if not password:
-            return Response({"error": "Missing password"}, status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Missing password"}, status=status.HTTP_400_BAD_REQUEST)
         
 
         # Authenticate
         user = authenticate(username=username, password=password)
         if not user:
-            return Response({"error": "Invalid credentials"}, status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
         
         # Generate the refresh token
         refresh = RefreshToken.for_user(user)
         
 
-        # Return the user email but not username because the frontend already had username
-        response = Response({"message": "Info: Successfully logged in!", "access_token": str(refresh.access_token), "email": user.email}, status.HTTP_200_OK)
+        # Return the user info
+        seri_user = UserSerializer(user)
+        response = Response({"message": "Info: Successfully logged in!", "access_token": str(refresh.access_token), "user": seri_user.data}, status=status.HTTP_200_OK)
 
 
         # Save the tokens in Cookie
@@ -78,22 +82,24 @@ class RefreshView(APIView):
         # Check if request come from an allowed origin. Allow if there's no Origin header
         origin = request.headers.get("Origin")
         if origin and not origin in ALLOWED_ORIGINS:
+            print(origin)
+            print(ALLOWED_ORIGINS)
             return Response({"message": "Error: Forbidden origin"}, status=status.HTTP_403_FORBIDDEN)
        
         refresh_str = request.COOKIES.get(REFRESH_COOKIE["name"])
         if not refresh_str:
-            return Response({"message": "Error: Do not have refresh token in cookies, login again"}, status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Error: Do not have refresh token in cookies, login again"}, status=status.HTTP_401_UNAUTHORIZED)
         
         # Validate the refresh token
         try:
             refresh = RefreshToken(refresh_str)
         except Exception:
-            return Response({"message": "Error: The refresh token is invalid"}, status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Error: The refresh token is invalid"}, status=status.HTTP_401_UNAUTHORIZED)
 
         
 
-        # Get User model based on the user id in refresh token. Return 401 us the user is missing
-        User = get_user_model()
+        # Get the user based on the user id in refresh token. Return 401 us the user is missing
+        
         try: 
             user = User.objects.get(id=refresh["user_id"])
         except User.DoesNotExist:
@@ -110,7 +116,7 @@ class RefreshView(APIView):
         # Generate a new refresh token
         new_refresh = RefreshToken.for_user(user)
 
-        response = Response({"message": message, "access_token": str(new_refresh.access_token)}, status.HTTP_200_OK)
+        response = Response({"message": message, "access_token": str(new_refresh.access_token)}, status=status.HTTP_200_OK)
         # Generate and save a new refresh token token in the cookies
         response.set_cookie(
             REFRESH_COOKIE["name"],
@@ -150,13 +156,19 @@ class SingleCustomerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk=None):
-        # Get the customer
-        User = get_user_model()
-        customer = get_object_or_404(User, pk=pk)
-
-        # Return 403 if the customer object is not the current user or the user doesn't have view_user perm
-        if request.user is not customer and not request.user.has_perm('auth.view_user'):
+        # Return 403 if it doesn't request the current user and the user doesn't have view_user perm to query by user id
+        if pk in ("me", None) and not request.user.has_perm('auth.view_user'):
             return Response({"message": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         
-        seri_customer = CustomerSerializer(request.user)
+
+        # Get the customer
+        if pk in ("me", None):
+            customer = request.user
+        else:
+            customer = get_object_or_404(User, pk=pk)
+
+        
+       
+        seri_customer = UserSerializer(customer)
         return Response(seri_customer.data, status=status.HTTP_200_OK)
+    

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef, useMemo } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useMemo, useEffect, useEffectEvent } from "react";
 import { toaster } from "../components/ui/toaster";
 import { useNavigate } from "react-router-dom";
 
@@ -6,7 +6,7 @@ const AuthContext = createContext();
 const backUrl = import.meta.env.VITE_BACKEND_URL
 
 export default function AuthProvider({ children }) {
-    // FIXME: call the backend to verify if we can still use cookies to log in silently, if not, set log out state.
+    
     
     const [user, setUser] = useState(null);
     const [isAuthenticated, setAuthenticated] = useState(false);
@@ -51,9 +51,10 @@ export default function AuthProvider({ children }) {
         };
         const data = await res.json();
 
-        setUser({username, email: data.email});
         setAuthenticated(true);
         setToken(data.access_token);
+        setUser(data.user);
+        console.log(data.user.username);
         return {
             success: true,
             message: "Success!"
@@ -92,7 +93,7 @@ export default function AuthProvider({ children }) {
         
     }, [setToken]);
 
-    // Refresh helper function, throw error if failed guarantee one refresh at a time
+    // Refresh helper function, throw error if fails. Guarantee one refresh at a time
     const callRefresh = useCallback(async () => {
         // If a concurrent call happens while a previous refresh call is being processed, return the promise from the previous ongoing call
         if(refreshPromiseRef.current) return refreshPromiseRef.current;
@@ -128,7 +129,8 @@ export default function AuthProvider({ children }) {
     // will try to refresh if the response is not ok. Then, it will fetch again and return the res no matter what the status code is
     // If the refresh fails, use toaster to notify the user, logout and navigate to the login page.
     // If fetch throw error, display network error and throw an Error
-    const callAPI = useCallback(async (url, options={}) => {
+    const callAPI = useCallback(async (postUrl, options={}) => {
+        url = `${backUrl}${postUrl}`;
         const config = {
             credentials: "include",
             ...options,
@@ -216,6 +218,33 @@ export default function AuthProvider({ children }) {
 
         return res;
     }, [callRefresh, logout, navigate])
+
+
+    // Call the backend to verify if we can log in silently, if not, set log out state.
+    useEffect(() => {
+        const init = async () => {
+            try {
+                // Refresh tokens
+                const newAccessToken = await callRefresh();
+
+                // Fetch user info
+                const res = await fetch(`${backUrl}/users/me`, {
+                    credentials: "include"
+                });
+
+                if(res.ok) {
+                    const user = await res.json();
+                    setUser(user);
+                    setAuthenticated(true);
+                }
+            }
+            catch (e) {
+                console.log(e.message);
+                logout();
+            }
+        }
+        init();
+    })
 
     const value = useMemo(() => ({ user, isAuthenticated, login, logout, callAPI }), [ user, isAuthenticated, login, logout, callAPI ])
     return (
