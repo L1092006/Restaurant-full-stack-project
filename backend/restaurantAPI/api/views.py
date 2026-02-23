@@ -145,7 +145,7 @@ class LogoutView(APIView):
 
         if not response:
             response = Response({"message": "Info: Successfully Logout!"}, status=status.HTTP_200_OK)
-        response.delete_cookie(REFRESH_COOKIE["name"], path=REFRESH_COOKIE["path"])
+        response.delete_cookie(REFRESH_COOKIE["name"], samesite=REFRESH_COOKIE["samesite"], path=REFRESH_COOKIE["path"])
         return response
     
 

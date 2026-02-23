@@ -241,7 +241,6 @@ export default function AuthProvider({ children }) {
                 }
             }
             catch (e) {
-                console.log("here")
                 console.log(e.message);
                 logout();
             }
