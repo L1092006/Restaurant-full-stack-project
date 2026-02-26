@@ -12,3 +12,4 @@ class MenuItem(models.Model):
     featured = models.BooleanField(db_index=True)
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    image_paths = models.TextField(null=True)
