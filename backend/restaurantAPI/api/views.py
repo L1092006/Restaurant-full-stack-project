@@ -4,14 +4,15 @@ from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, viewsets
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
 
 import environ
 from pathlib import Path
 from .serializers import *
+from .models import *
 
 
 
@@ -172,5 +173,19 @@ class SingleCustomerView(APIView):
        
         seri_customer = UserSerializer(customer)
         return Response(seri_customer.data, status=status.HTTP_200_OK)
+    
+
+#  For MenuItem and Category Views, get method doesn't require any permission while 
+#  other methods require user to be authenticated and has the corresponding permissions
+#  to modify the models
+class MenuItemView(viewsets.ModelViewSet):
+    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+
+class CategoryView(viewsets.ModelViewSet):
+    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
 
     

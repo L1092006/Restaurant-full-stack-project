@@ -39,7 +39,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
     price_after_tax = serializers.SerializerMethodField(method_name='getPriceAfterTax')
     class Meta:
         model = MenuItem
-        fields = ['id', 'title', 'category', 'category_id', 'price', 'price_after_tax' 'stock', 'featured', 'description', 'image_paths']
+        fields = ['id', 'title', 'category', 'category_id', 'price', 'price_after_tax', 'stock', 'featured', 'description', 'image_paths']
 
     def getPriceAfterTax(self, item):
         tax = Decimal(env('TAX'))
