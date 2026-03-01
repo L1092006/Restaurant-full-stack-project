@@ -14,6 +14,7 @@ urlpatterns = [
     path('auth/login/', views.LoginView.as_view(), name="login"),
     path('auth/refresh/', views.RefreshView.as_view(), name="refresh"),
     path('auth/logout/', views.LogoutView.as_view(), name="logout"),
+    path('auth/signup/', views.SignUpView.as_view(), name="signup"),
     path('users/<str:pk>/', views.SingleCustomerView.as_view(), name="single_customer"),
     path('', include(router.urls)),
 ]

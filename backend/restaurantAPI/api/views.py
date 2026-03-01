@@ -149,6 +149,16 @@ class LogoutView(APIView):
         response.delete_cookie(REFRESH_COOKIE["name"], samesite=REFRESH_COOKIE["samesite"], path=REFRESH_COOKIE["path"])
         return response
     
+class SignUpView(APIView):
+    def post(self, request):
+        seri_user = UserSerializer(data=request.data)
+        
+        seri_user.is_valid(raise_exception=True)
+        
+        seri_user.save()
+        return Response({'message': 'success'}, status=status.HTTP_201_CREATED)
+
+    
 
 
 # NORMAL VIEWS

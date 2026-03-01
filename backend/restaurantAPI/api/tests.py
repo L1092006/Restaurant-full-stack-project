@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from decimal import Decimal
@@ -244,3 +245,89 @@ class CategoryApiTests(APITestCase):
         # Verify deletion
         self.assertFalse(Category.objects.filter(id=self.category.id).exists())
         self.client.force_authenticate(None)
+
+
+# Test SignUpView
+
+
+User = get_user_model()
+
+class SignUpViewTests(APITestCase):
+    def setUp(self):
+        self.url = reverse("api:signup")
+
+    def test_signup_success_creates_user_and_returns_message(self):
+        data = {
+            "username": "loc123",
+            "password": "StrongPass123!",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data, {"message": "success"})
+
+        user = User.objects.get(username="loc123")
+        self.assertIsNotNone(user)
+        self.assertTrue(user.check_password("StrongPass123!"))
+
+    def test_signup_missing_username_returns_400_and_field_error(self):
+        data = {
+            "password": "StrongPass123!",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("username", response.data)
+        self.assertTrue(response.data["username"])
+
+    def test_signup_missing_password_returns_400_and_field_error(self):
+        data = {
+            "username": "loc123",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+        self.assertTrue(response.data["password"])
+
+    def test_signup_duplicate_username_returns_400(self):
+        User.objects.create_user(username="loc123", password="StrongPass123!")
+
+        data = {
+            "username": "loc123",
+            "password": "AnotherPass123!",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc2@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("username", response.data)
+
+    def test_signup_weak_password_returns_400(self):
+        data = {
+            "username": "loc1234",
+            "password": "123",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
