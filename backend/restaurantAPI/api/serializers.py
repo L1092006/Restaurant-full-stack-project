@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.utils.text import slugify
 from .models import *
 import environ
@@ -13,11 +15,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 env.read_env(BASE_DIR / '.env')
 
+
+User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = get_user_model()
-        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        model = User
+        fields = ['id', 'username', 'password', 'first_name', 'last_name', 'email']
+        extra_kwargs = {
+            'password': {
+                'write_only': True,
+                'required': True,
+                'validators': [validate_password]
+            },
+            'username': {
+                'required': True,
+                'validators': [UniqueValidator(queryset=User.objects.all())]
+            },
+            'email': {
+                'required': True,
+                'validators': [UniqueValidator(queryset=User.objects.all())]
+            }
+        }
 
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
