@@ -130,7 +130,7 @@ export default function AuthProvider({ children }) {
     // If the refresh fails, use toaster to notify the user, logout and navigate to the login page.
     // If fetch throw error, display network error and throw an Error
     const callAPI = useCallback(async (postUrl, options={}, auth=false) => {
-        url = `${backUrl}${postUrl}`;
+        const url = `${backUrl}${postUrl}`;
         const config = {
             credentials: "include",
             ...options,

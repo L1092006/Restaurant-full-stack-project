@@ -1,28 +1,40 @@
 import { useOutletContext, Link } from "react-router-dom";
 import { Tabs, Text, Card, Image, Grid, Heading } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import callAPI from "../utils/callAPI";
+import { useAuth } from '../contexts/AuthContext';
 import  placeholder from "../assets/img/placeholder.jpg";
 
 export default function Menu() {
+    // Get the size of the page
     const { mainSize } = useOutletContext();
 
     const [ categories, setCategories ] = useState(null);
     const [ itemsInCat, setItemsInCat ] = useState(null);
 
-    
+    // Get the callAPI function
+    const { callAPI } = useAuth();
 
     // FIXME: Improve if needed
     useEffect(() => {
         async function getContent() {
-            const cats = await callAPI("categories");
-            const allItems = await callAPI("items");
+            let cats = null;
+            let allItems = null;
+            try {
+                cats = await callAPI("/categories/").then(res => res.json());
+                allItems = await callAPI("/items/").then(res => res.json());
+            }
+            catch (e) {
+                console.log(e.message);
+            }
+
+
+            
             const tempItems = new Map();
             for(let cat of cats) {
                 tempItems.set(cat.id, [])
             }
             for(let item of allItems) {
-                tempItems.get(item.category).push(item);
+                tempItems.get(item.category.id).push(item);
             }
             setCategories(cats)
             setItemsInCat(tempItems);
@@ -45,7 +57,7 @@ export default function Menu() {
             <Tabs.List bg="gray.300" >
                 {categories.map(cat => {
                     return (
-                        <Tabs.Trigger value={cat.id} key={cat.id} color={tabStyle.color}>{cat.name}</Tabs.Trigger>
+                        <Tabs.Trigger value={cat.id} key={cat.id} color={tabStyle.color}>{cat.title}</Tabs.Trigger>
                     )
                 })}
             </Tabs.List>

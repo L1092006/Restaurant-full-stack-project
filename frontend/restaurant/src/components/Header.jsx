@@ -5,7 +5,7 @@ import { FaShoppingCart } from "react-icons/fa";
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Header({headerSize}) {
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   //FIXME: complete logout and remove login handler
   const logoutHandler = async () => {
