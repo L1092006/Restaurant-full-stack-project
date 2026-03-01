@@ -125,17 +125,17 @@ export default function AuthProvider({ children }) {
         try { return await p } finally { refreshPromiseRef.current = null; }   
     }, [setToken]);
 
-    // call API function that auto send all the necessary headers and credentials
-    // will try to refresh if the response is not ok. Then, it will fetch again and return the res no matter what the status code is
+    // call API function that auto send all the necessary headers and credentials if auth is true
+    // will try to refresh if the response is not ok and auth is true. Then, it will fetch again and return the res no matter what the status code is
     // If the refresh fails, use toaster to notify the user, logout and navigate to the login page.
     // If fetch throw error, display network error and throw an Error
-    const callAPI = useCallback(async (postUrl, options={}) => {
+    const callAPI = useCallback(async (postUrl, options={}, auth=false) => {
         url = `${backUrl}${postUrl}`;
         const config = {
             credentials: "include",
             ...options,
             headers: {
-                ...(accessTokenRef.current ? {"Authorization": `Bearer ${accessTokenRef.current}`} : {}),
+                ...((auth && accessTokenRef.current) ? {"Authorization": `Bearer ${accessTokenRef.current}`} : {}),
                 "Content-Type": "application/json",
                 ...(options.headers || {})
             }
@@ -158,8 +158,8 @@ export default function AuthProvider({ children }) {
         }
         
 
-        // If the call is successfully authenticated, return the res
-        if(res && res.ok) {
+        // If the call is successful or this is not an authenticated call, return the res
+        if(!auth || (res && res.ok)) {
             return res;
         }
 
