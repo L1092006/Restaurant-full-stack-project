@@ -35,7 +35,7 @@ export default function Home() {
     size: {
       ratio: {
         base: 6/4,
-        xl: 6/2
+        xl: 6/3
       },
       w: {
         base: "50vw",

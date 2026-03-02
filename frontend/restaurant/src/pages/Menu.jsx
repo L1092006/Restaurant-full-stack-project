@@ -20,11 +20,18 @@ export default function Menu() {
             let cats = null;
             let allItems = null;
             try {
-                cats = await callAPI("/categories/").then(res => res.json());
-                allItems = await callAPI("/items/").then(res => res.json());
+                const catRes = await callAPI("/categories/");
+                const itemRes = await callAPI("/items/");
+
+                // If res is not ok, throw an error and return in the catch
+                if(!catRes.ok || !itemRes.ok) throw new Error('callAPI successfully but res is not ok');
+
+                cats = await catRes.json();
+                allItems = await itemRes.json();
             }
             catch (e) {
                 console.log(e.message);
+                return;
             }
 
 

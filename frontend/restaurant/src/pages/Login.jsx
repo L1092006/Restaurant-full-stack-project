@@ -21,7 +21,7 @@ export default function Login() {
         register,
         handleSubmit,
         formState: { errors }
-    } = useForm({ resolver: zodResolver(schema), mode: "onChange"});
+    } = useForm({ resolver: zodResolver(schema), mode: "onChange" });
 
     const navigate = useNavigate();
 

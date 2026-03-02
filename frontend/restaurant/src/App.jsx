@@ -8,6 +8,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Menu from './pages/Menu'
+import Signup from './pages/Signup'
 import Implementing from './pages/Implementing'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/" element={<Home/>}/>
           <Route path="/login" element={<Login/>}/>
           <Route path="/menu" element={<Menu/>}/>
+          <Route path='/signup' element={<Signup/>}/>
           {/* FIXME: Implement the pages for the below routes */}
           <Route path="/cart" element={<Implementing/>}/>
           <Route path="/account" element={<Implementing/>}/>

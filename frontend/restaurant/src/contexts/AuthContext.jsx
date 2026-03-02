@@ -136,7 +136,6 @@ export default function AuthProvider({ children }) {
             ...options,
             headers: {
                 ...((auth && accessTokenRef.current) ? {"Authorization": `Bearer ${accessTokenRef.current}`} : {}),
-                "Content-Type": "application/json",
                 ...(options.headers || {})
             }
         };
@@ -158,63 +157,63 @@ export default function AuthProvider({ children }) {
         }
         
 
-        // If the call is successful or this is not an authenticated call, return the res
-        if(!auth || (res && res.ok)) {
+        // If the call is successful, return the res.
+        if(res && res.ok) {
             return res;
         }
 
-
-        // Try to refresh the access token. If ok, call the original API again and return its res
-        try{
-            const newAccessToken = await callRefresh();
-            config.headers = { ...config.headers, "Authorization": `Bearer ${newAccessToken}` }
-            try {
-                return await fetch(url, config);
+        // If res is not ok and authentication is required, try refresh the tokens
+        if(auth) {
+            // Try to refresh the access token. If ok, call the original API again and return its res
+            try{
+                const newAccessToken = await callRefresh();
+                config.headers = { ...config.headers, "Authorization": `Bearer ${newAccessToken}` }
+                try {
+                    const newRes = await fetch(url, config);
+                    if(newRes.ok) return newRes;
+                }
+                catch {
+                    throw new Error("Network error");
+                }
             }
-            catch {
-                throw new Error("Network error");
-            }
-        }
-        catch (e) {
-            // If can not refresh, log out and ask user to login again 
-            if(e.message === "Network error") {
-                // Display a notification
-                toaster.create({
-                    title: e.message,
-                    description: "Please try again or wait and try later",
-                    type: "error",
-                    closable: true
-                });
-                throw e;
-            }
-            else {
-                const resLogout = await logout();
-                if(resLogout.success) {
+            catch (e) {
+                // If can not refresh, log out and ask user to login again 
+                if(e.message === "Network error") {
                     // Display a notification
                     toaster.create({
-                        title: "Timeout.",
-                        description: "Please log in again",
-                        type: "info",
-                        closable: true
-                    })
-
-                    // Navigate to the login page
-                    
-                    navigate("/login");
-                }
-                else {
-                    // If we can't even logout, tell the user to try again later
-                    toaster.create({
-                        title: "Error",
-                        description: "Something went wrong. Please try again later",
+                        title: e.message,
+                        description: "Please try again or wait and try later",
                         type: "error",
                         closable: true
-                    })
+                    });
+                    throw e;
                 }
-                
+                else {
+                    const resLogout = await logout();
+                    if(resLogout.success) {
+                        // Display a notification
+                        toaster.create({
+                            title: "Timeout.",
+                            description: "Please log in again",
+                            type: "info",
+                            closable: true
+                        })
+
+                        // Navigate to the login page
+                        
+                        navigate("/login");
+                    }
+                }
             }
-            
         }
+
+        // If we still fails, tell the user to try again later
+        toaster.create({
+            title: "Error",
+            description: "Something went wrong. Please try again later",
+            type: "error",
+            closable: true
+        })
 
         return res;
     }, [callRefresh, logout, navigate])
