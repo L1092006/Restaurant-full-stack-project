@@ -1,5 +1,9 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 # Create your models here.
 
@@ -15,3 +19,16 @@ class MenuItem(models.Model):
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
     image_paths = models.TextField(null=True, blank=True)
+
+class CartItem(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    menuitem = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'menuitem'],
+                name='unique_user_menuitem'
+            )
+        ]
