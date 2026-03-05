@@ -53,7 +53,10 @@ class CategorySerializer(serializers.ModelSerializer):
         slug = slugify(title)
         validated_data['slug'] = slug
         return super().create(validated_data)
-    
+
+
+# Get the tax percentage from env
+tax = Decimal(env('TAX'))
 class MenuItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     category_id = serializers.IntegerField(write_only=True)
@@ -63,5 +66,19 @@ class MenuItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'category', 'category_id', 'price', 'price_after_tax', 'stock', 'featured', 'description', 'image_paths']
 
     def getPriceAfterTax(self, item):
-        tax = Decimal(env('TAX'))
         return item.price * tax
+    
+class CartItemSerializer(serializers.Serializer):
+    menuitem = MenuItemSerializer(read_only=True)
+    menuitem_id = serializers.IntegerField(write_only=True)
+    total_price = serializers.SerializerMethodField(method_name='getTotalPrice')
+    total_price_after_tax = serializers.SerializerMethodField(method_name='getTotalPriceAfterTax')
+    class Meta:
+        model = CartItem
+        fields = ['id', 'user', 'menuitem', 'menuitem_id', 'quantity', 'total_price', 'total_price_after_tax']
+
+    def getTotalPrice(self, cartItem):
+        return cartItem.menuitem.price * cartItem.quantity
+    
+    def getTotalPriceAfterTaxt(self, cartItem):
+        return cartItem.menuitem.price_after_tax * cartItem.quantity
