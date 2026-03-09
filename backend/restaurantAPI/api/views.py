@@ -198,4 +198,21 @@ class CategoryView(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+
+# For GET, return all carts if user has view_cartitem perm. Otherwise, return the user's cart.
+# For POST, PUT, PATCH, can only create or modify a cart item that belongs to the current user (enforce via serializer and get_queryset)
+# For DELETE, user with delete perm can delete any item. Normal user like customer can only delete their items
+class CartView(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = CartItem.objects.all()
+    serializer_class = CartItemSerializer
+
+    def get_queryset(self):
+        base = CartItem.objects.select_related('user')
+        if (self.request.user.has_perm('api.view_cartitem') and self.request.method == 'GET') or (self.request.user.has_perm('api.delete_cartitem') and self.request.method == 'DELETE'):
+            return base
+        return base.filter(user=self.request.user)
+    
+
+
     

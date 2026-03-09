@@ -59,7 +59,7 @@ class CategorySerializer(serializers.ModelSerializer):
 tax = Decimal(env('TAX'))
 class MenuItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
-    category_id = serializers.IntegerField(write_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(source='category', queryset=Category.objects.all(), write_only=True)
     price_after_tax = serializers.SerializerMethodField(method_name='getPriceAfterTax')
     class Meta:
         model = MenuItem
@@ -68,17 +68,19 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def getPriceAfterTax(self, item):
         return item.price * tax
     
-class CartItemSerializer(serializers.Serializer):
+class CartItemSerializer(serializers.ModelSerializer):
     menuitem = MenuItemSerializer(read_only=True)
-    menuitem_id = serializers.IntegerField(write_only=True)
+    menuitem_id = serializers.PrimaryKeyRelatedField(source='menuitem', queryset=MenuItem.objects.all(),write_only=True)
     total_price = serializers.SerializerMethodField(method_name='getTotalPrice')
     total_price_after_tax = serializers.SerializerMethodField(method_name='getTotalPriceAfterTax')
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True)
     class Meta:
         model = CartItem
-        fields = ['id', 'user', 'menuitem', 'menuitem_id', 'quantity', 'total_price', 'total_price_after_tax']
+        fields = ['id', 'user', 'user_id', 'menuitem', 'menuitem_id', 'quantity', 'total_price', 'total_price_after_tax']
 
     def getTotalPrice(self, cartItem):
         return cartItem.menuitem.price * cartItem.quantity
     
-    def getTotalPriceAfterTaxt(self, cartItem):
-        return cartItem.menuitem.price_after_tax * cartItem.quantity
+    def getTotalPriceAfterTax(self, cartItem):
+        return cartItem.menuitem.price * cartItem.quantity * tax

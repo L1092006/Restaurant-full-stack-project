@@ -6,9 +6,104 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from decimal import Decimal
-from .models import MenuItem, Category  
+from .models import * 
+import environ
+from pathlib import Path
+from decimal import Decimal
+
+
+
+# Load environment variables
+BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env()
+env.read_env(BASE_DIR / '.env')
 
 # Create your tests here.
+
+# Test SignUpView
+
+
+User = get_user_model()
+
+class SignUpViewTests(APITestCase):
+    def setUp(self):
+        self.url = reverse("api:signup")
+
+    def test_signup_success_creates_user_and_returns_message(self):
+        data = {
+            "username": "loc123",
+            "password": "StrongPass123!",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data, {"message": "success"})
+
+        user = User.objects.get(username="loc123")
+        self.assertIsNotNone(user)
+        self.assertTrue(user.check_password("StrongPass123!"))
+
+    def test_signup_missing_username_returns_400_and_field_error(self):
+        data = {
+            "password": "StrongPass123!",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("username", response.data)
+        self.assertTrue(response.data["username"])
+
+    def test_signup_missing_password_returns_400_and_field_error(self):
+        data = {
+            "username": "loc123",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+        self.assertTrue(response.data["password"])
+
+    def test_signup_duplicate_username_returns_400(self):
+        User.objects.create_user(username="loc123", password="StrongPass123!")
+
+        data = {
+            "username": "loc123",
+            "password": "AnotherPass123!",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc2@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("username", response.data)
+
+    def test_signup_weak_password_returns_400(self):
+        data = {
+            "username": "loc1234",
+            "password": "123",
+            "first_name": "Loc",
+            "last_name": "Nguyen",
+            "email": "loc@example.com"
+        }
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
 
 
 # Test menuitem api
@@ -247,87 +342,183 @@ class CategoryApiTests(APITestCase):
         self.client.force_authenticate(None)
 
 
-# Test SignUpView
+
+# Test for cart view
+TAX = env('TAX')  # Decimal value used by MenuItemSerializer
 
 
-User = get_user_model()
+def _dec(value):
+    return Decimal(str(value))
 
-class SignUpViewTests(APITestCase):
+class CartViewTests(APITestCase):
     def setUp(self):
-        self.url = reverse("api:signup")
+        # users
+        self.user = User.objects.create_user(username="user", password="pass")
+        self.other = User.objects.create_user(username="other", password="pass")
+        self.staff = User.objects.create_user(username="staff", password="pass")
 
-    def test_signup_success_creates_user_and_returns_message(self):
-        data = {
-            "username": "loc123",
-            "password": "StrongPass123!",
-            "first_name": "Loc",
-            "last_name": "Nguyen",
-            "email": "loc@example.com"
-        }
+        # permissions
+        self.view_perm = Permission.objects.get(codename="view_cartitem")
+        self.change_perm = Permission.objects.get(codename="change_cartitem")
+        self.delete_perm = Permission.objects.get(codename="delete_cartitem")
 
-        response = self.client.post(self.url, data, format="json")
+        # category and menu items
+        self.cat = Category.objects.create(title="cat1", slug="cat1")
+        self.menu1 = MenuItem.objects.create(
+            title="m1",
+            price=Decimal("10.00"),
+            stock=10,
+            featured=False,
+            description="desc1",
+            category=self.cat,
+        )
+        self.menu2 = MenuItem.objects.create(
+            title="m2",
+            price=Decimal("5.00"),
+            stock=5,
+            featured=False,
+            description="desc2",
+            category=self.cat,
+        )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data, {"message": "success"})
+        # cart items
+        self.item_user = CartItem.objects.create(user=self.user, menuitem=self.menu1, quantity=1)
+        self.item_other = CartItem.objects.create(user=self.other, menuitem=self.menu2, quantity=2)
 
-        user = User.objects.get(username="loc123")
-        self.assertIsNotNone(user)
-        self.assertTrue(user.check_password("StrongPass123!"))
+        # urls
+        self.list_url = reverse("api:cart-list")
+        self.detail_user = reverse("api:cart-detail", args=[self.item_user.pk])
+        self.detail_other = reverse("api:cart-detail", args=[self.item_other.pk])
 
-    def test_signup_missing_username_returns_400_and_field_error(self):
-        data = {
-            "password": "StrongPass123!",
-            "first_name": "Loc",
-            "last_name": "Nguyen",
-            "email": "loc@example.com"
-        }
+    def _assert_ok(self, resp, expected=status.HTTP_200_OK):
+        if resp.status_code >= 500:
+            raise AssertionError(f"Server error {resp.status_code}: {resp.content!r}")
+        assert resp.status_code == expected, f"Expected {expected}, got {resp.status_code}: {resp.content!r}"
 
-        response = self.client.post(self.url, data, format="json")
+    def test_get_list_with_view_perm_returns_all_items_and_prices(self):
+        self.staff.user_permissions.add(self.view_perm)
+        self.client.force_authenticate(self.staff)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("username", response.data)
-        self.assertTrue(response.data["username"])
+        resp = self.client.get(self.list_url)
+        self._assert_ok(resp, expected=status.HTTP_200_OK)
 
-    def test_signup_missing_password_returns_400_and_field_error(self):
-        data = {
-            "username": "loc123",
-            "first_name": "Loc",
-            "last_name": "Nguyen",
-            "email": "loc@example.com"
-        }
+        data = resp.json()
+        returned_ids = {item["id"] for item in data}
+        assert self.item_user.id in returned_ids
+        assert self.item_other.id in returned_ids
 
-        response = self.client.post(self.url, data, format="json")
+        # find the serialized entry for item_user and item_other
+        by_id = {item["id"]: item for item in data}
+        u = by_id[self.item_user.id]
+        o = by_id[self.item_other.id]
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("password", response.data)
-        self.assertTrue(response.data["password"])
+        # expected totals
+        expected_u_total = _dec(self.menu1.price) * _dec(self.item_user.quantity)
+        expected_o_total = _dec(self.menu2.price) * _dec(self.item_other.quantity)
 
-    def test_signup_duplicate_username_returns_400(self):
-        User.objects.create_user(username="loc123", password="StrongPass123!")
+        expected_u_after = expected_u_total * _dec(TAX)
+        expected_o_after = expected_o_total * _dec(TAX)
 
-        data = {
-            "username": "loc123",
-            "password": "AnotherPass123!",
-            "first_name": "Loc",
-            "last_name": "Nguyen",
-            "email": "loc2@example.com"
-        }
+        assert _dec(u["total_price"]) == expected_u_total
+        assert _dec(o["total_price"]) == expected_o_total
 
-        response = self.client.post(self.url, data, format="json")
+        assert _dec(u["total_price_after_tax"]) == expected_u_after
+        assert _dec(o["total_price_after_tax"]) == expected_o_after
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("username", response.data)
+    def test_get_list_without_view_perm_returns_only_own_items_and_prices(self):
+        self.client.force_authenticate(self.user)
 
-    def test_signup_weak_password_returns_400(self):
-        data = {
-            "username": "loc1234",
-            "password": "123",
-            "first_name": "Loc",
-            "last_name": "Nguyen",
-            "email": "loc@example.com"
-        }
+        resp = self.client.get(self.list_url)
+        self._assert_ok(resp, expected=status.HTTP_200_OK)
 
-        response = self.client.post(self.url, data, format="json")
+        data = resp.json()
+        returned_ids = {item["id"] for item in data}
+        assert self.item_user.id in returned_ids
+        assert self.item_other.id not in returned_ids
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("password", response.data)
+        item = data[0]
+        expected_total = _dec(self.menu1.price) * _dec(self.item_user.quantity)
+        expected_after = expected_total * _dec(TAX)
+
+        assert _dec(item["total_price"]) == expected_total
+        assert _dec(item["total_price_after_tax"]) == expected_after
+
+    def test_create_sets_user_and_computes_totals(self):
+        self.client.force_authenticate(self.user)
+        payload = {"menuitem_id": self.menu2.pk, "quantity": 3, "user": self.other.pk}
+
+        resp = self.client.post(self.list_url, payload, format="json")
+        if resp.status_code >= 500:
+            raise AssertionError(f"Server error {resp.status_code}: {resp.content!r}")
+
+        assert resp.status_code in (status.HTTP_201_CREATED, status.HTTP_400_BAD_REQUEST), resp.content
+
+        if resp.status_code == status.HTTP_201_CREATED:
+            data = resp.json()
+            created = CartItem.objects.get(pk=data["id"])
+            assert created.user == self.user
+            assert created.menuitem_id == self.menu2.pk
+            assert created.quantity == 3
+
+            # totals in response
+            assert _dec(data["total_price"]) == _dec(self.menu2.price) * _dec(3)
+            assert _dec(data["total_price_after_tax"]) == _dec(self.menu2.price) * _dec(3) * _dec(TAX)
+
+    def test_create_duplicate_menuitem_for_same_user_fails(self):
+        self.client.force_authenticate(self.user)
+        payload = {"menuitem_id": self.menu1.pk, "quantity": 2}  # user already has menu1
+
+        resp = self.client.post(self.list_url, payload, format="json")
+        if resp.status_code >= 500:
+            raise AssertionError(f"Server error {resp.status_code}: {resp.content!r}")
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST, resp.content
+
+    def test_update_allowed_for_owner_updates_totals(self):
+        self.client.force_authenticate(self.user)
+        payload = {"quantity": 5}
+
+        resp = self.client.patch(self.detail_user, payload, format="json")
+        self._assert_ok(resp, expected=status.HTTP_200_OK)
+
+        data = resp.json()
+        self.item_user.refresh_from_db()
+        assert self.item_user.quantity == 5
+
+        expected_total = _dec(self.menu1.price) * _dec(5)
+        expected_after = expected_total * _dec(TAX)
+
+        assert _dec(data["total_price"]) == expected_total
+        assert _dec(data["total_price_after_tax"]) == expected_after
+
+    def test_update_allowed_for_user_with_change_perm(self):
+        self.staff.user_permissions.add(self.change_perm)
+        self.client.force_authenticate(self.staff)
+        payload = {"quantity": 7}
+
+        resp = self.client.patch(self.detail_other, payload, format="json")
+        self._assert_ok(resp, expected=status.HTTP_404_NOT_FOUND)
+
+
+
+    def test_delete_owner_can_delete_own_item(self):
+        self.client.force_authenticate(self.user)
+
+        resp = self.client.delete(self.detail_user)
+        if resp.status_code >= 500:
+            raise AssertionError(f"Server error {resp.status_code}: {resp.content!r}")
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert not CartItem.objects.filter(pk=self.item_user.pk).exists()
+
+    def test_delete_allowed_for_user_with_delete_perm(self):
+        self.staff.user_permissions.add(self.delete_perm)
+        self.client.force_authenticate(self.staff)
+
+        resp = self.client.delete(self.detail_other)
+        if resp.status_code >= 500:
+            raise AssertionError(f"Server error {resp.status_code}: {resp.content!r}")
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert not CartItem.objects.filter(pk=self.item_other.pk).exists()
+

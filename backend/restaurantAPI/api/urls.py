@@ -8,7 +8,7 @@ app_name = 'api'
 router = DefaultRouter()
 router.register('items', views.MenuItemView, basename='menuitem')
 router.register('categories', views.CategoryView, basename='category')
-
+router.register('carts', views.CartView, basename='cart')
 
 urlpatterns = [
     path('auth/login/', views.LoginView.as_view(), name="login"),
