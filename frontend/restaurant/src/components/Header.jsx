@@ -3,9 +3,12 @@ import { toaster } from "../components/ui/toaster"
 import { Link } from 'react-router-dom';
 import { FaShoppingCart } from "react-icons/fa";
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 
 export default function Header({headerSize}) {
   const { user, isAuthenticated, logout } = useAuth();
+
+  const { cartNumber } = useCart();
 
   //FIXME: complete logout and remove login handler
   const logoutHandler = async () => {
@@ -34,8 +37,7 @@ export default function Header({headerSize}) {
         <Link to="/cart">
           <Button aria-label='Cart' variant="ghost" colorPalette="white" px="0.5em" _hover={{backgroundColor: "green.700"}}>
             <FaShoppingCart/>
-            {/* FIXME: get the number of items in cart from context */}
-            <Badge color="white" backgroundColor="green.700" borderRadius="full" variant="subtle">1</Badge>
+            <Badge color="white" backgroundColor="green.700" borderRadius="full" variant="subtle" >{cartNumber}</Badge>
           </Button>     
         </Link>
 

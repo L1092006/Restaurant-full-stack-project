@@ -43,5 +43,5 @@ export default function CartProvider({ children }) {
 }
 
 export function useCart() {
-    useContext(CartContext);
+    return useContext(CartContext);
 }
