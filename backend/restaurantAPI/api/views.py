@@ -212,7 +212,3 @@ class CartView(viewsets.ModelViewSet):
         if (self.request.user.has_perm('api.view_cartitem') and self.request.method == 'GET') or (self.request.user.has_perm('api.delete_cartitem') and self.request.method == 'DELETE'):
             return base
         return base.filter(user=self.request.user)
-    
-
-
-    
