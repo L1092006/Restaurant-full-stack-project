@@ -33,7 +33,7 @@ export default function CartProvider({ children }) {
         }
     }, [isAuthenticated, callAPI])
 
-    const value = useMemo(() => ({ cartNumber, setCartNumber, cartItems, setCartItems }), [cartNumber, setCartNumber, cartItems, setCartItems]);
+    const value = useMemo(() => ({ cartNumber, setCartNumber, cartItems, setCartItems, loadCart }), [cartNumber, setCartNumber, cartItems, setCartItems, loadCart]);
 
     return (
         <CartContext.Provider value={value}>
