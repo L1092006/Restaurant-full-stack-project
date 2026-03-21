@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
@@ -212,3 +213,17 @@ class CartView(viewsets.ModelViewSet):
         if (self.request.user.has_perm('api.view_cartitem') and self.request.method == 'GET') or (self.request.user.has_perm('api.delete_cartitem') and self.request.method == 'DELETE'):
             return base
         return base.filter(user=self.request.user)
+    
+@api_view(['GET'])
+def checkCartItems(request):
+    cartitems = request.data.get('cartitems')
+    # A list to store all the cart items whose quatities exceed menuitem stocks
+    issues = []
+    for cartitem in cartitems:
+        menuitem = get_object_or_404(MenuItem, id=cartitem.menuitem.id)
+        if cartitem.quantity > menuitem.stock:
+            issues.append({
+                'cartitem_id': cartitem.id,
+                'cartitem_quantity': cartitem.quantity,
+                'menuitem_stock': menuitem.stock
+            })

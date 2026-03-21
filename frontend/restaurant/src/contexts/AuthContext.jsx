@@ -128,7 +128,7 @@ export default function AuthProvider({ children }) {
     // call API function that call the backend with all the necessary headers. It auto sends credentials if auth is true
     // If the response is not ok and auth is true, try refreshing tokens and get a new response to return. If the refresh fails, notify the user and force to log out and login again.
     // If any fetch throw error, display network error and throw an Error.
-    // If the res is not ok, return the original res.
+    // If the res is not ok, notify user and return the original res.
     // SUMMARY: callAPI only handles the authentication (by refresh and force to login if fail) and fetch error (by raise error). 
     // if authentication handler fails or any other issues occur, notify user and return the res as it is
     const callAPI = useCallback(async (postUrl, { options = {}, auth = false } = {}) => {

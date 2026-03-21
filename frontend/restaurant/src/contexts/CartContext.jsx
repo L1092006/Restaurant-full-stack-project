@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 
 const CartContext = createContext();
@@ -10,9 +10,8 @@ export default function CartProvider({ children }) {
     const [ cartNumber, setCartNumber ] = useState(0);
     const [ cartItems, setCartItems ] = useState(null);
 
-    // If the user is authenticated, get the cart items data from the backend.
-    useEffect(() => {
-        const loadCart = async () => {
+    // Get all the items of the user's cart
+    const loadCart = useCallback(async () => {
             let res = null;
             try {
                 res = await callAPI('/carts/', {auth: true});
@@ -24,8 +23,9 @@ export default function CartProvider({ children }) {
             catch (e) {
                 console.log(e.message);
             }
-        }
-
+        }, [setCartItems, setCartNumber]);
+    // If the user is authenticated, get the cart items data from the backend.
+    useEffect(() => {
         if(isAuthenticated) loadCart();
         else {
             setCartItems(null);
