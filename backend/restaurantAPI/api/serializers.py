@@ -83,4 +83,4 @@ class CartItemSerializer(serializers.ModelSerializer):
         return cartItem.menuitem.price * cartItem.quantity
     
     def getTotalPriceAfterTax(self, cartItem):
-        return cartItem.menuitem.price * cartItem.quantity * tax
+        return cartItem.menuitem.price * cartItem.quantity * (1+tax)

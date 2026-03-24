@@ -214,16 +214,18 @@ class CartView(viewsets.ModelViewSet):
             return base
         return base.filter(user=self.request.user)
     
-@api_view(['GET'])
-def checkCartItems(request):
-    cartitems = request.data.get('cartitems')
-    # A list to store all the cart items whose quatities exceed menuitem stocks
-    issues = []
-    for cartitem in cartitems:
-        menuitem = get_object_or_404(MenuItem, id=cartitem.menuitem.id)
-        if cartitem.quantity > menuitem.stock:
-            issues.append({
-                'cartitem_id': cartitem.id,
-                'cartitem_quantity': cartitem.quantity,
-                'menuitem_stock': menuitem.stock
-            })
+# The below view may be necessary when convert a non-user cart in the frontend to actual cartitems in the data base when they login 
+# The function is intended to receive the cart items from frontend and return a  list containing  all the cart items whose quatities exceed menuitem stocks
+# @api_view(['GET'])
+# def checkCartItems(request):
+#     cartitems = request.data.get('cartitems')
+#     # A list to store all the cart items whose quatities exceed menuitem stocks
+#     issues = []
+#     for cartitem in cartitems:
+#         menuitem = get_object_or_404(MenuItem, id=cartitem.menuitem.id)
+#         if cartitem.quantity > menuitem.stock:
+#             issues.append({
+#                 'cartitem_id': cartitem.id,
+#                 'cartitem_quantity': cartitem.quantity,
+#                 'menuitem_stock': menuitem.stock
+#             })
