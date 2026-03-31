@@ -26,10 +26,10 @@ export default function CartProvider({ children }) {
 
 
 
-    // Add an item to the cart. Return nothing, raise error if there are problems:
+    // Add addAmount items to the cart. addNumber can be negative which means subtract some items. Return nothing, raise error if there are problems:
     //  Error with messages for not enough items, non-ok response or existing call. Normal TypeError for failed fetch call
     const addItemRef = useRef(new Set());
-    const addItem = useCallback(async (menuitem_id) => {
+    const addItem = useCallback(async (menuitem_id, addAmount) => {
         // Define the messages for different errors
         const errorMessages = {
             // Not enough items
@@ -57,7 +57,7 @@ export default function CartProvider({ children }) {
                     res = await callAPI(`/carts/${item.id}/`, {options: {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ quantity: item.quantity + 1 })
+                        body: JSON.stringify({ quantity: item.quantity + addAmount })
                     }, auth: true});
                             
                     if(!res.ok) throw new Error(errorMessages.notOk);
@@ -72,8 +72,8 @@ export default function CartProvider({ children }) {
                 }
             }
 
-            // Return if we already added the item
-            if(done) return;
+            // Return if we already added the item or if addAmount is <=0 since we don't need to create new item in this case
+            if(done || addAmount < 1) return;
 
             try {
                 // If the item is not in the cart, create a new cart item
@@ -82,7 +82,7 @@ export default function CartProvider({ children }) {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             menuitem_id: menuitem_id,
-                            quantity: 1
+                            quantity: addAmount
                         })
                     }, auth: true});
 

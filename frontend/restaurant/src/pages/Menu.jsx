@@ -63,7 +63,7 @@ export default function Menu() {
     const addHandler = async (e, item) => {
         e.preventDefault();
         try {
-            await addItem(item.id);
+            await addItem(item.id, 1);
         }
         catch (error) {
             // If the stock of an item needs to be updated, reload the content
