@@ -1,7 +1,10 @@
 import { useOutletContext, Link } from "react-router-dom";
-import { Tabs, Text, Card, Image, Grid, Heading } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { Tabs, Text, Card, Image, Grid, Heading, IconButton } from "@chakra-ui/react";
+import { useEffect, useState, useCallback } from "react";
+import { IoMdAdd } from "react-icons/io";
+import { toaster } from "../components/ui/toaster";
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from "../contexts/CartContext";
 import  placeholder from "../assets/img/placeholder.jpg";
 
 export default function Menu() {
@@ -15,8 +18,8 @@ export default function Menu() {
     const { callAPI } = useAuth();
 
     // FIXME: Improve if needed
-    useEffect(() => {
-        async function getContent() {
+    // Helper function to get all items and categories
+    const getContent = useCallback(async () => {
             let cats = null;
             let allItems = null;
             try {
@@ -45,9 +48,39 @@ export default function Menu() {
             }
             setCategories(cats)
             setItemsInCat(tempItems);
-        };
+        }, [callAPI]);
+
+    // Get the content when the component is mounted
+    useEffect(() => {
         getContent();
-    }, [])
+    }, [getContent]);
+
+
+    // Get the addItem function from CartContext
+    const { addItem } = useCart();
+
+    // Handler for the add item button
+    const addHandler = async (e, item) => {
+        e.preventDefault();
+        try {
+            await addItem(item.id);
+        }
+        catch (error) {
+            // If the stock of an item needs to be updated, reload the content
+            if (error.message === 'Not enough') {
+                getContent();
+            }
+            // If there is another addItem call, tell the user to wait
+            else if (error.message === 'Existing call') {
+                toaster.create({
+                    title: 'The web is busy.',
+                    description: 'Please wait for a few seconds',
+                    type: 'loading',
+                    closable: true
+                });
+            }
+        }
+    }
 
     const tabStyle = {
         fontFamily: "cursive",
@@ -80,6 +113,9 @@ export default function Menu() {
                                         <Card.Body bg="whitesmoke">
                                             <Heading as="h3" mb="0.5rem">{item.title}</Heading>
                                             <Text>{item.description}</Text>
+                                            <IconButton onClick={(e) => addHandler(e, item)} variant="solid" size="xs" ml="auto" backgroundColor="green.800" _hover={{backgroundColor: "green.700"}}>
+                                                <IoMdAdd/>
+                                            </IconButton>
                                         </Card.Body>
                                     </Card.Root>
                                 </Link>

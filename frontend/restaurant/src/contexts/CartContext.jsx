@@ -26,8 +26,8 @@ export default function CartProvider({ children }) {
 
 
 
-    // Add an item to the cart. Raise error if quantity exceed the stock. Return nothing, raise error if there are problems:
-    //  Error with messages for not enough items and non-ok response. Normal TypeError for failed fetch call
+    // Add an item to the cart. Return nothing, raise error if there are problems:
+    //  Error with messages for not enough items, non-ok response or existing call. Normal TypeError for failed fetch call
     const addItemRef = useRef(new Set());
     const addItem = useCallback(async (menuitem_id) => {
         // Define the messages for different errors
@@ -95,13 +95,15 @@ export default function CartProvider({ children }) {
             }
             catch (e) {
                 throw e;
+                console.log(e.message);
             }
 
-            // Update the cart item in cartItems
-            await loadCart();
+            
             return;
         }
         finally {
+            // Update the cart item in cartItems
+            await loadCart();
             addItemRef.current.delete(menuitem_id);
         }
     }, [loadCart, cartItems, callAPI])
