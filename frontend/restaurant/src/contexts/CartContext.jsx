@@ -27,7 +27,7 @@ export default function CartProvider({ children }) {
 
 
     // Add addAmount items to the cart. addNumber can be negative which means subtract some items. Return nothing, raise error if there are problems:
-    //  Error with messages for not enough items, non-ok response or existing call. Normal TypeError for failed fetch call
+    //  Error with messages for not enough items (but still add the item to the cart and then reload the menu items), non-ok response or existing call. Normal TypeError for failed fetch call
     const addItemRef = useRef(new Set());
     const addItem = useCallback(async (menuitem_id, addAmount) => {
         // Define the messages for different errors
@@ -63,9 +63,10 @@ export default function CartProvider({ children }) {
                     if(!res.ok) throw new Error(errorMessages.notOk);
                     const updatedItem = await res.json();
                             
+                    done = true;
                     // Check if the current quantity exceed the stock
                     if(updatedItem.quantity > updatedItem.menuitem.stock) throw new Error(errorMessages.notEnough);
-                    done = true;
+                    
                 }
                 catch(e) {
                     throw e;
