@@ -106,7 +106,7 @@ export default function Menu() {
                 return (
                     <Tabs.Content value={cat.id} key={cat.id} >
                         <Grid templateColumns="repeat(auto-fit, 20rem)"  justifyContent="center" gap="2rem" px="4vw" pt="1rem" pb="2rem">
-                            {itemsInCat.get(cat.id).map(item => (
+                            {itemsInCat.get(cat.id).filter(item => item.stock > 0).map(item => (
                                 <Link to={`/menu/${item.id}`} key={item.id}>
                                     <Card.Root  color={tabStyle.color} colorPalette="white" _hover={{shadow: "lg"}}> 
                                         <Image src={item.path ? item.path : placeholder} aspectRatio={6/4}/>
