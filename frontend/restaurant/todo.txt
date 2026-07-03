@@ -1,0 +1,2 @@
+- Fix cannot signup - DONE 06/28
+- Fix cannot additem for admin - THIS IS INTENTIONAL

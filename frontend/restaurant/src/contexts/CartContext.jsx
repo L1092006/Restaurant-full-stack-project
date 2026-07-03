@@ -26,7 +26,7 @@ export default function CartProvider({ children }) {
 
 
 
-    // Add addAmount items to the cart. addNumber can be negative which means subtract some items. Return nothing, raise error if there are problems:
+    // Take a menuitem_id and add addAmount items to the cart. addNumber can be negative which means subtract some items. Return nothing, raise error if there are problems:
     //  Error with messages for not enough items (but still add the item to the cart and then reload the menu items), non-ok response or existing call. Normal TypeError for failed fetch call
     const addItemRef = useRef(new Set());
     const addItem = useCallback(async (menuitem_id, addAmount) => {
@@ -53,12 +53,23 @@ export default function CartProvider({ children }) {
                 const item = cartItems[i];
                 if(item.menuitem.id !== menuitem_id) continue;
                 try {
-                    // If there is an item with the similar menuitem_id, make a patch request to update the quantity
-                    res = await callAPI(`/carts/${item.id}/`, {options: {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ quantity: item.quantity + addAmount })
-                    }, auth: true});
+                    // If there is an item with the similar menuitem_id, make a patch or delete request to update the quantity
+                    // Add addAmount
+                    if(item.quantity + addAmount > 0) {
+                        res = await callAPI(`/carts/${item.id}/`, {options: {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ quantity: item.quantity + addAmount })
+                        }, auth: true});
+                    }
+                    // Delete the cart item
+                    else {
+                        res = await callAPI(`/carts/${item.id}/`, {options: {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                        }, auth: true});
+                    }
+                    
                             
                     if(!res.ok) throw new Error(errorMessages.notOk);
                     const updatedItem = await res.json();
