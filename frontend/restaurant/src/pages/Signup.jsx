@@ -46,14 +46,13 @@ export default function Signup() {
         let res = null;
         try {
             res = await callAPI(
-                '/auth/signup/',
-                {
+                '/auth/signup/', {options: {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(data)
-                }
+                }}
             );
             if(!res.ok) throw new Error('callAPI successfully but res is not true');
 
