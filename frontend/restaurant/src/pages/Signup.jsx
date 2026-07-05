@@ -13,8 +13,8 @@ const schema = z.object({
             .min(3, "Username too short")
             .max(20, "Username too long")
             .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores allowed"),
-    first_name: z.string(),
-    last_name: z.string(),
+    first_name: z.string().min(1, "Please provide your first name"),
+    last_name: z.string().min(1, "Please provide your last name"),
     email: z.string().email("Invalid email"),
     password: z.string()
             .min(8, "Password must be at least 8 characters")
@@ -95,14 +95,20 @@ export default function Signup() {
                         <Field.ErrorText>{errors.username?.message}</Field.ErrorText>
                     </Field.Root>
 
-                    <Field.Root  invalid={!!errors.first_name}>
-                        <Field.Label fontSize={style.fontSize} mb="1rem">First Name</Field.Label>
+                    <Field.Root  invalid={!!errors.first_name} required>
+                        <Field.Label fontSize={style.fontSize} mb="1rem">
+                            First Name
+                            <Field.RequiredIndicator/>
+                        </Field.Label>
                         <Input {...register("first_name")} size="xl" fontSize="1.3rem" bg="white"/>
                         <Field.ErrorText>{errors.firstName?.message}</Field.ErrorText>
                     </Field.Root>
 
-                    <Field.Root  invalid={!!errors.last_name}>
-                        <Field.Label fontSize={style.fontSize} mb="1rem">Last Name</Field.Label>
+                    <Field.Root  invalid={!!errors.last_name} required>
+                        <Field.Label fontSize={style.fontSize} mb="1rem">
+                            Last Name
+                            <Field.RequiredIndicator/>
+                        </Field.Label>
                         <Input {...register("last_name")} size="xl" fontSize="1.3rem" bg="white"/>
                         <Field.ErrorText>{errors.lastName?.message}</Field.ErrorText>
                     </Field.Root>

@@ -1,10 +1,30 @@
-import { Box, VStack, HStack, Spacer, Text, Card, Image, Heading, IconButton, Button } from "@chakra-ui/react";
+import { Box, Button, ButtonGroup, Steps, Flex, Field, Input, Card, Text, Image, Spacer } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { toaster } from "../components/ui/toaster";
 import { IoMdAdd, IoMdRemove } from "react-icons/io";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import  { useForm } from "react-hook-form";
 import { useCart } from "../contexts/CartContext";
+import AddressForm from "../components/AddressForm"
 import  placeholder from "../assets/img/placeholder.jpg";
+
+// Define the schema for the form
+const schema = z.object({
+    // Contact info
+    first_name: z.string().min(1, "This can not be empty"),
+    last_name: z.string().min(1, "This can not be empty"),
+    email: z.string().email("Invalid email"),
+    phone_number: z.string().regex(/^\d{10}$/, "Enter a valid phone number"),
+
+    // Delivery info
+    address: z.string().min(1, "Enter a valid address"),
+    optional_details: z.string().optional(),
+    city: z.string().min(1, "Enter a valid city"),
+    state: z.string().min(1, "Enter a valid state"),
+    postal_code: z.string().regex(/^\d{5,9}$/, "Enter a valid state")
+})
 
 export default function Checkout() {
   // Visual and layout variables
@@ -12,44 +32,25 @@ export default function Checkout() {
   const style = {
       fontFamily: "cursive",
       fontSize: {
-        base: "0.5rem",
+        base: "1rem",
         lg: "1rem"
         },
       color: "gray.700",
-      h: {base: "10rem", lg: "15rem"}
+    //   The height of card of each item
+      cardH: {base: "6rem", lg: "6rem"},
+      cardW: {lg: "50vw"},
+
+      gap: "1.5rem",
+      formW: {base: "70vw", lg: "50vw"},
+      //   The gap between label and its input
+      labelB: "0.1rem",
+      //   The mx of the box containing form and step component
+      mx: {base: "5vw", lg: "10vw"}
   }
 
 // Logic variables
   const { cartItems, loadCart, addItem } = useCart();
 
-  // Used to check if there is any item whose quantity exceed stock. False if there is
-  const [ validCart, setValidCart ] = useState(true);
-
-  // List of all invalid items
-  const [ invalidItems, setInvalidItems ] = useState([]);
-
-  // Handler for the add item button. Take the menuitem and the number to add to the cartitem quantity
-  const addHandler = async (e, item, addNumber) => {
-      e.preventDefault();
-      try {
-          await addItem(item.id, addNumber);
-      }
-      catch (error) {
-          // If the stock of an item needs to be updated, set the validCart to false if needed
-          if (error.message === 'Not enough') {
-              setValidCart(false);
-          }
-          // If there is another addItem call, tell the user to wait
-          else if (error.message === 'Existing call') {
-              toaster.create({
-                  title: 'The web is busy.',
-                  description: 'Please wait for a few seconds',
-                  type: 'loading',
-                  closable: true
-              });
-          }
-      }
-  }
 
   //   Helper functions to calculate the total price of all items 
   const get_total_price = (tax) => {
@@ -62,79 +63,205 @@ export default function Checkout() {
     return sum
   }
 
-  // Load cart and initialize validCart. Set it to false if needed.
+  // Load cart 
   useEffect(() => loadCart, []);
-  useEffect(() => {
-    setValidCart(true);
-    const invalidItems = [];
-    for(const item of cartItems) {
-        if(item.quantity > item.menuitem.stock) {
-            setValidCart(false);
-            invalidItems.push(item);
-        }
-    }
 
-    setInvalidItems(invalidItems);
-    
-  },[cartItems])
 
+  // Form Hook
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({ resolver: zodResolver(schema), mode: 'onChange' });
+
+  const mySubmitHandler = async (data) => {
+    console.log("Submit");
+  }
   // FIXME: check if eveything is correct. Add minus button and display warning if validCart is false
   return (
-    <Box fontSize={style.fontSize} fontFamily="cursive">
-        <VStack w="90vw" mx="auto" my="2vh" gap='2vh' alignItems="center" minH={mainSize}>
-        {
-            cartItems.map(item => (
-            <Link to={`/menu/${item.menuitem.id}`} key={item.id}>
-                <Card.Root flexDirection="row"  color={style.color} colorPalette="white" _hover={{shadow: "lg"}} h={style.h}> 
-                    <Image src={item.menuitem.path ? item.menuitem.path : placeholder} aspectRatio={{base: 1/1, lg: 6/4}}/>
-                    <Card.Body bg="whitesmoke" fontSize="1rem">
-                        <Heading as="h3" mb="0.5rem">{item.menuitem.title}</Heading>
-                        <Text mb="auto" overflow="hidden">{item.menuitem.description}</Text>
-                        <HStack fontSize='1.2rem'>
-                            <Spacer/>
-                            <Text mr="1.2rem">{`Price: $${item.total_price}`}</Text>
-                            <IconButton onClick={(e) => addHandler(e, item.menuitem, -1)} variant="solid" size="xs" ml="auto" color="white" backgroundColor="green.800" _hover={{backgroundColor: "green.700"}}>
-                            <IoMdRemove/>
-                            </IconButton>
-                            <IconButton onClick={(e) => addHandler(e, item.menuitem, 1)} variant="solid" size="xs" ml="auto" color="white" backgroundColor="green.800" _hover={{backgroundColor: "green.700"}}>
-                            <IoMdAdd/>
-                            </IconButton>
-                            <Text ml="1.2rem">{item.quantity}</Text>
-                        </HStack>
-                        {(item.quantity > item.menuitem.stock) ? <Text color="red.500">Warning: Low stock. There are currently only {item.menuitem.stock} items in stock.</Text> : ''}
+    <Box fontSize={style.fontSize} fontFamily="cursive" minH={mainSize} color={style.color}>
+        <Box my="1vh" mx={style.mx}>
+            <form onSubmit={handleSubmit(mySubmitHandler)}>
+                <Steps.Root defaultStep={0} count={3} colorPalette="teal" variant="subtle" color={style.color}>
+                    <Steps.List>
+                        <Steps.Item key={0} index={0} title={"Contact Infomation"}>
+                            <Steps.Trigger>
+                                <Steps.Indicator />
+                                <Steps.Title color={style.color}>{"Contact Infomation"}</Steps.Title>
+                            </Steps.Trigger>
+                            <Steps.Separator />
+                        </Steps.Item>
+                        <Steps.Item key={1} index={1} title={"Delivery"}>
+                            <Steps.Trigger>
+                                <Steps.Indicator />
+                                <Steps.Title color={style.color}>{"Delivery"}</Steps.Title>
+                            </Steps.Trigger>
+                            <Steps.Separator />
+                        </Steps.Item>
+                        <Steps.Item key={2} index={2} title={"Payment & Confirmation"}>
+                            <Steps.Trigger>
+                                <Steps.Indicator />
+                                <Steps.Title color={style.color}>{"Payment & Confirmation"}</Steps.Title>
+                            </Steps.Trigger>
+                            <Steps.Separator />
+                        </Steps.Item>
+                    </Steps.List>
                     
-                    </Card.Body>
-                </Card.Root>
-            </Link>
-            ))
-        }
-        <Spacer/>
-        <Box w="full"  textAlign='left' color={style.color} fontSize="1.5rem">
-            {/* Price section */}
-            <Text>
-                Total price: ${get_total_price(false).toFixed(2)}
-                <br/>
-                Total price after tax: ${get_total_price(true).toFixed(2)}
-            </Text>
-            <Box my='1vh'>
-                {invalidItems.map((item) => (
-                    <Text fontSize="1rem" color="red.500">There are not enough {item.menuitem.title} in stock. Please change the quantity to checkout.</Text>
-                ))}
-            </Box>
+                    {/* Contact Infomation */}
+                    <Steps.Content key={0} index={0}>
+                        <Flex direction="column" gap={style.gap} w={style.formW} mx="auto">
+                            <Field.Root invalid={!!errors.first_name} required>
+                                <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                    First Name
+                                    <Field.RequiredIndicator/>
+                                </Field.Label>
+                                <Input {...register("first_name")} size="xl" fontSize="1.3rem" bg="white"/>
+                                <Field.ErrorText>{errors.first_name?.message}</Field.ErrorText>
+                            </Field.Root>
 
-            {/* <Link to="/checkout" bg='red' ml="10rem">
-                <Button link _hover={{backgroundColor: "green.700"}} bg='green.800' color='white' disabled={!validCart}>
-                 Checkout
-                </Button>     
-            </Link> */}
-            <Box textAlign="right">
-                <Button as={Link} size={{base: "sm", md: "lg", lg: "2xl"}}  to="/checkout" _hover={{backgroundColor: "green.700"}} bg='green.800' color='white' disabled={!validCart}>
-                    Checkout
-                </Button>
-            </Box>
+                            <Field.Root  invalid={!!errors.last_name} required>
+                                <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                    Last Name
+                                    <Field.RequiredIndicator/>
+                                </Field.Label>
+                                <Input {...register("last_name")} size="xl" fontSize="1.3rem" bg="white"/>
+                                <Field.ErrorText>{errors.lastName?.message}</Field.ErrorText>
+                            </Field.Root>
+
+                            <Field.Root  invalid={!!errors.email} required>
+                                <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                    Email
+                                    <Field.RequiredIndicator/>
+                                </Field.Label>
+                                <Input {...register("email")} size="xl" fontSize="1.3rem" bg="white"/>
+                                <Field.ErrorText>{errors.email?.message}</Field.ErrorText>
+                            </Field.Root>
+
+                            <Field.Root  invalid={!!errors.phone_number} required>
+                                <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                    Phone Number
+                                    <Field.RequiredIndicator/>
+                                </Field.Label>
+                                <Input {...register("phone_number")} size="xl" fontSize="1.3rem" bg="white"/>
+                                <Field.ErrorText>{errors.phone_number?.message}</Field.ErrorText>
+                            </Field.Root>
+                            <ButtonGroup size="sm" alignSelf="flex-end">
+                                <Steps.PrevTrigger asChild>
+                                <Button>Prev</Button>
+                                </Steps.PrevTrigger>
+                                <Steps.NextTrigger asChild>
+                                <Button>Next</Button>
+                                </Steps.NextTrigger>
+                            </ButtonGroup>
+                        </Flex>
+                    </Steps.Content>
+
+                    {/* Address */}
+                    <Steps.Content key={1} index={1}>
+                        <Flex direction="column" gap={style.gap} w={style.formW} mx="auto">
+                            <Field.Root invalid={!!errors.address} required>
+                                    <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                        Address
+                                        <Field.RequiredIndicator/>
+                                    </Field.Label>
+                                    <Input {...register("address")} size="xl" fontSize="1.3rem" bg="white"/>
+                                    <Field.ErrorText>{errors.address?.message}</Field.ErrorText>
+                            </Field.Root>
+
+                            <Field.Root invalid={!!errors.optional_details}>
+                                    <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                        Add APT, Suite, Unit,...
+                                    </Field.Label>
+                                    <Input {...register("optional_detailse")} size="xl" fontSize="1.3rem" bg="white"/>
+                                    <Field.ErrorText>{errors.optional_details?.message}</Field.ErrorText>
+                            </Field.Root>
+
+                            <Field.Root invalid={!!errors.city} required>
+                                    <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                        City
+                                        <Field.RequiredIndicator/>
+                                    </Field.Label>
+                                    <Input {...register("city")} size="xl" fontSize="1.3rem" bg="white"/>
+                                    <Field.ErrorText>{errors.city?.message}</Field.ErrorText>
+                            </Field.Root>
+
+                            <Field.Root invalid={!!errors.state} required>
+                                    <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                        State
+                                        <Field.RequiredIndicator/>
+                                    </Field.Label>
+                                    <Input {...register("state")} size="xl" fontSize="1.3rem" bg="white"/>
+                                    <Field.ErrorText>{errors.state?.message}</Field.ErrorText>
+                            </Field.Root>
+
+                            <Field.Root invalid={!!errors.postal_code} required>
+                                    <Field.Label fontSize={style.fontSize} mb={style.labelB}>
+                                        Postal Code
+                                        <Field.RequiredIndicator/>
+                                    </Field.Label>
+                                    <Input {...register("postal_code")} size="xl" fontSize="1.3rem" bg="white"/>
+                                    <Field.ErrorText>{errors.postal_code?.message}</Field.ErrorText>
+                            </Field.Root>
+                            <ButtonGroup size="sm"  alignSelf="flex-end">
+                                <Steps.PrevTrigger asChild>
+                                <Button>Prev</Button>
+                                </Steps.PrevTrigger>
+                                <Steps.NextTrigger asChild>
+                                <Button>Next</Button>
+                                </Steps.NextTrigger>
+                            </ButtonGroup>
+                        </Flex>
+                    </Steps.Content>
+
+                     
+                    <Steps.Content key={2} index={2}>
+                        <Flex direction="column" gap={style.gap} mx="auto">
+                            {cartItems.map((item) => (
+                                <Link to={`/menu/${item.menuitem.id}`} key={item.id}>
+                                    <Card.Root flexDirection="row"  color={style.color} colorPalette="white" _hover={{shadow: "lg"}} maxH={style.cardH} maxW={"50rem"} overflow={"hidden"}> 
+                                        <Image src={item.menuitem.path ? item.menuitem.path : placeholder} aspectRatio={6/4} h={style.cardH} fit={"fill"}/>
+                                        <Card.Body bg="whitesmoke" fontSize="1rem" gap="1" m={"0"}>
+                                            <Box>
+                                                <Card.Title>{item.menuitem.title}</Card.Title>
+                                                <Text ml="1.2rem">Quantity: {item.quantity}</Text>
+                                            </Box>
+                                        </Card.Body>
+                                    </Card.Root>
+                                </Link>
+                            ))}
+
+                            <Box w="full"  textAlign='left' color={style.color} fontSize="1.5rem">
+                                {/* Price section */}
+                                <Text>
+                                    Total price: ${get_total_price(false).toFixed(2)}
+                                    <br/>
+                                    Total price after tax: ${get_total_price(true).toFixed(2)}
+                                </Text>
+                            </Box>
+
+                            <ButtonGroup size="sm"  alignSelf="flex-end">
+                                <Steps.PrevTrigger asChild>
+                                <Button>Prev</Button>
+                                </Steps.PrevTrigger>
+                                <Button type="submit"  bg="green.800" color="white" h="3rem" w="8rem" _hover={{bg: "green.600"}} fontSize={style.fontSize}>Place Order</Button>
+                            </ButtonGroup>
+                        </Flex>
+                    </Steps.Content>
+
+                    <Steps.CompletedContent>Done!</Steps.CompletedContent>
+
+                    {/* <ButtonGroup size="sm">
+                        <Steps.PrevTrigger asChild>
+                        <Button>Prev</Button>
+                        </Steps.PrevTrigger>
+                        <Steps.NextTrigger asChild>
+                        <Button>Next</Button>
+                        </Steps.NextTrigger>
+                    </ButtonGroup> */}
+                </Steps.Root>          
+            </form>
              
         </Box>
-        </VStack>
     </Box>
     
   );
