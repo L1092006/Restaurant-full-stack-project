@@ -84,3 +84,17 @@ class CartItemSerializer(serializers.ModelSerializer):
     
     def getTotalPriceAfterTax(self, cartItem):
         return cartItem.menuitem.price * cartItem.quantity * (1+tax)
+
+# Only create OrderItem by using the model directly when an order is created. This serializer is for deserialization only
+class OrderItemSerializer(serializers.ModelSerializer):
+    menuitem = MenuItemSerializer(read_only=True)
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'menuitem', 'quantity']
+
+class OrderSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    orderitem_set = OrderItemSerializer(many=True, read_only=True)
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'status', 'total_price_after_tax', 'first_name', 'last_name', 'email', 'phone_number', 'address', 'orderitem_set']

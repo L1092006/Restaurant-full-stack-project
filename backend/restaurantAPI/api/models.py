@@ -32,3 +32,28 @@ class CartItem(models.Model):
                 name='unique_user_menuitem'
             )
         ]
+
+
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # Possible string values for status:
+    #   processing: user has just placed order, payment not yet received and confirmed
+    #   preparing: payment received, preparing to ship
+    #   shipping: order shipped
+    #   completed: customer receieved the order.
+    #   canceled: canceled by the custormer
+    status = models.CharField(max_length=255, db_index=True, default="processing")
+    total_price_after_tax = models.DecimalField(max_digits=6, decimal_places=2)
+    datetime = models.DateTimeField(db_index=True, auto_now_add=True)
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    email = models.CharField(max_length=255)
+    phone_number = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    menuitem = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+    class Meta:
+        unique_together = ['order', 'menuitem']

@@ -3,17 +3,18 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
+from rest_framework import mixins
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
+from .serializers import *
+from .models import *
 
 import environ
 from pathlib import Path
-from .serializers import *
-from .models import *
+from decimal import Decimal, ROUND_HALF_UP
 
 
 
@@ -38,6 +39,7 @@ REFRESH_COOKIE = {
     "max_age": 60 * 60 * 24 * 7
 }
 
+TAX = Decimal(env('TAX'))
 
 # Get the User model
 User = get_user_model()
@@ -157,7 +159,7 @@ class SignUpView(APIView):
         seri_user.is_valid(raise_exception=True)
         
         seri_user.save()
-        return Response({'message': 'success'}, status=status.HTTP_201_CREATED)
+        return Response(seri_user.data, status=status.HTTP_201_CREATED)
 
     
 
@@ -229,3 +231,46 @@ class CartView(viewsets.ModelViewSet):
 #                 'cartitem_quantity': cartitem.quantity,
 #                 'menuitem_stock': menuitem.stock
 #             })
+
+class OrderView(mixins.ListModelMixin,
+                   mixins.CreateModelMixin,
+                   mixins.RetrieveModelMixin,
+                   mixins.DestroyModelMixin,
+                   viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    # FIXME: delete cartitems and implement destroy()
+    def create(self, request):
+        # Get cartitems
+        cartitems = CartItem.objects.filter(user=request.user)
+
+        total_price = 0
+        for c in cartitems:
+            total_price += c.menuitem.price * c.quantity
+        
+        # Create the new order
+        order_data = request.data.copy()
+        order_data['total_price_after_tax'] = (total_price * (1+tax)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+        seri_order = OrderSerializer(data=order_data, context={'request': request})
+        seri_order.is_valid(raise_exception=True)
+        order = seri_order.save()
+
+        # Create orderitems 
+        order_items = []
+        for c in cartitems:
+            order_item = OrderItem(order=order, menuitem=c.menuitem, quantity=c.quantity)
+            order_items.append(order_item)
+        OrderItem.objects.bulk_create(order_items)
+
+        # Delete cartitems
+        cartitems.delete()
+        return Response(seri_order.data, status=status.HTTP_201_CREATED)
+
+
+    def get_queryset(self):
+        base = Order.objects.select_related('user')
+        # Allow admin to view and delete all orders
+        if (self.request.user.has_perm('api.view_order') and self.request.method == 'GET') or (self.request.user.has_perm('api.delete_cartitem') and self.request.method == 'DELETE'):
+            return base
+        return base.filter(user=self.request.user)

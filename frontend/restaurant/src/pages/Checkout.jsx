@@ -7,7 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import  { useForm } from "react-hook-form";
 import { useCart } from "../contexts/CartContext";
-import AddressForm from "../components/AddressForm"
+import { useAuth } from "../contexts/AuthContext";
 import  placeholder from "../assets/img/placeholder.jpg";
 
 // Define the schema for the form
@@ -65,7 +65,8 @@ export default function Checkout() {
 
   // Load cart 
   useEffect(() => loadCart, []);
-
+  
+  const { callAPI } = useAuth();
 
   // Form Hook
   const {
@@ -75,7 +76,23 @@ export default function Checkout() {
   } = useForm({ resolver: zodResolver(schema), mode: 'onChange' });
 
   const mySubmitHandler = async (data) => {
-    console.log("Submit");
+    let res = null;
+    try {
+        res = await callAPI(
+            '/orders/', {options: {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }, auth: true}
+        );
+        if(!res.ok) throw new Error('callAPI successfully but res is not true');
+    }
+    catch (e) {
+        console.log(e.message);
+    }
+
   }
   // FIXME: check if eveything is correct. Add minus button and display warning if validCart is false
   return (
