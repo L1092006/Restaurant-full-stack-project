@@ -6,6 +6,7 @@ import { IoMdAdd, IoMdRemove } from "react-icons/io";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import  { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import  placeholder from "../assets/img/placeholder.jpg";
@@ -48,7 +49,10 @@ export default function Checkout() {
       mx: {base: "5vw", lg: "10vw"}
   }
 
-// Logic variables
+  // Get the navigate function
+  const navigate = useNavigate();
+
+  // Logic variables
   const { cartItems, loadCart, addItem } = useCart();
 
 
@@ -64,7 +68,7 @@ export default function Checkout() {
   }
 
   // Load cart 
-  useEffect(() => loadCart, []);
+  useEffect(() => {loadCart()}, []);
   
   const { callAPI } = useAuth();
 
@@ -87,7 +91,12 @@ export default function Checkout() {
                 body: JSON.stringify(data)
             }, auth: true}
         );
-        if(!res.ok) throw new Error('callAPI successfully but res is not true');
+        if(!res.ok) throw new Error(`callAPI successfully but res code is ${res.status}`);
+        loadCart();
+
+        const body = await res.json();
+        navigate(`/account/orders/${body.id}`);
+
     }
     catch (e) {
         console.log(e.message);
@@ -260,21 +269,15 @@ export default function Checkout() {
                                 <Steps.PrevTrigger asChild>
                                 <Button>Prev</Button>
                                 </Steps.PrevTrigger>
+
                                 <Button type="submit"  bg="green.800" color="white" h="3rem" w="8rem" _hover={{bg: "green.600"}} fontSize={style.fontSize}>Place Order</Button>
+
                             </ButtonGroup>
                         </Flex>
                     </Steps.Content>
 
                     <Steps.CompletedContent>Done!</Steps.CompletedContent>
 
-                    {/* <ButtonGroup size="sm">
-                        <Steps.PrevTrigger asChild>
-                        <Button>Prev</Button>
-                        </Steps.PrevTrigger>
-                        <Steps.NextTrigger asChild>
-                        <Button>Next</Button>
-                        </Steps.NextTrigger>
-                    </ButtonGroup> */}
                 </Steps.Root>          
             </form>
              

@@ -1,6 +1,6 @@
 import { Box, VStack, HStack, Spacer, Text, Card, Image, Heading, IconButton, Button } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
-import { useOutletContext, Link } from "react-router-dom";
+import { useOutletContext, Link, useNavigate } from "react-router-dom";
 import { toaster } from "../components/ui/toaster";
 import { IoMdAdd, IoMdRemove } from "react-icons/io";
 import { useCart } from "../contexts/CartContext";
@@ -16,12 +16,13 @@ export default function Cart() {
         lg: "1rem"
         },
       color: "gray.700",
-      h: {base: "10rem", lg: "15rem"}
+      h: {base: "8rem", lg: "12rem"}
   }
 
 // Logic variables
   const { cartItems, loadCart, addItem } = useCart();
-
+  
+  const navigate = useNavigate();
   // Used to check if there is any item whose quantity exceed stock. False if there is
   const [ validCart, setValidCart ] = useState(true);
 
@@ -63,7 +64,7 @@ export default function Cart() {
   }
 
   // Load cart and initialize validCart. Set it to false if needed.
-  useEffect(() => loadCart, []);
+  useEffect(() => {loadCart()}, []);
   useEffect(() => {
     setValidCart(true);
     const invalidItems = [];
@@ -128,7 +129,7 @@ export default function Cart() {
                 </Button>     
             </Link> */}
             <Box textAlign="right">
-                <Button as={Link} size={{base: "sm", md: "lg", lg: "2xl"}}  to="/checkout" _hover={{backgroundColor: "green.700"}} bg='green.800' color='white' disabled={!validCart}>
+                <Button onClick={() => {navigate("/checkout")}} size={{base: "sm", md: "lg", lg: "2xl"}}  _hover={{backgroundColor: "green.700"}} bg='green.800' color='white' disabled={!validCart}>
                     Checkout
                 </Button>
             </Box>

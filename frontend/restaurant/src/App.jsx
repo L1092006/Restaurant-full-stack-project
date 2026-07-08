@@ -9,9 +9,12 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Menu from './pages/Menu'
 import Signup from './pages/Signup'
-import Implementing from './pages/Implementing'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import SingleOrder from './pages/SingleOrder'
+import Orders from './pages/Orders'
+import Account from './pages/Account'
+import Implementing from './pages/Implementing'
 
 function App() {
   return (
@@ -25,8 +28,10 @@ function App() {
           <Route path='/signup' element={<Signup/>}/>
           <Route path="/cart" element={<Cart/>}/>
           <Route path="/checkout" element={<Checkout/>}/>
+          <Route path="/account" element={<Account/>}/>
+          <Route path="/account/orders" element={<Orders/>}/>
+          <Route path="/account/orders/:id" element={<SingleOrder/>}/>
           {/* FIXME: Implement the pages for the below routes */}
-          <Route path="/account" element={<Implementing/>}/>
           <Route path="/about" element={<Implementing/>}/>
           <Route path="/menu/:id" element={<Implementing/>}/>
           <Route path="/contact" element={<Implementing/>}/>

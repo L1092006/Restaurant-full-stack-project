@@ -235,12 +235,13 @@ class CartView(viewsets.ModelViewSet):
 class OrderView(mixins.ListModelMixin,
                    mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin,
-                   mixins.DestroyModelMixin,
+                   mixins.UpdateModelMixin,
                    viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    # FIXME: delete cartitems and implement destroy()
+
+    # Get all the items in the cart of the current user and transform them into order items and create a new order
     def create(self, request):
         # Get cartitems
         cartitems = CartItem.objects.filter(user=request.user)
@@ -252,6 +253,8 @@ class OrderView(mixins.ListModelMixin,
         # Create the new order
         order_data = request.data.copy()
         order_data['total_price_after_tax'] = (total_price * (1+tax)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+        # Ensure that the status is always 'processing'
+        order_data['status'] = 'processing'
         seri_order = OrderSerializer(data=order_data, context={'request': request})
         seri_order.is_valid(raise_exception=True)
         order = seri_order.save()
@@ -266,6 +269,30 @@ class OrderView(mixins.ListModelMixin,
         # Delete cartitems
         cartitems.delete()
         return Response(seri_order.data, status=status.HTTP_201_CREATED)
+    
+    def partial_update(self, request, pk=None):
+        if not pk:
+            return Response({"error": "no id"}, status=status.HTTP_400_BAD_REQUEST)
+        order = get_object_or_404(Order, pk=pk)
+        
+        # If the user has change permission, allow them to change anything
+        if request.user.has_perm('api.change_order'):
+            seri_order = OrderSerializer(order, data=request.data, partial=True)
+            seri_order.is_valid(raise_exception=True)
+        # If the request comes from a regular user (customer), only allow them to change the order status to cancel
+        else:
+            data = dict(request.data)
+            keys = data.keys()
+            # Check if only status is present in the data and its value is canceled. If not, return 403
+            if not (len(keys) == 1 and 'status' in keys and data['status'] == 'canceled'):
+                return Response({'error': 'You can only change status to canceled'}, status=status.HTTP_403_FORBIDDEN)
+            
+            seri_order = OrderSerializer(order, data=data, partial=True)
+            seri_order.is_valid(raise_exception=True)
+
+        seri_order.save()
+        return Response(seri_order.data, status.HTTP_200_OK)
+
 
 
     def get_queryset(self):
