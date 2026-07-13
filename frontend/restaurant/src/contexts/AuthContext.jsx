@@ -247,7 +247,7 @@ export default function AuthProvider({ children }) {
             }
         }
         init();
-    },[])
+    },[callRefresh])
 
     const value = useMemo(() => ({ user, isAuthenticated, login, logout, callAPI }), [ user, isAuthenticated, login, logout, callAPI ])
     return (

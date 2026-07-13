@@ -6,6 +6,7 @@ import {BrowserRouter} from "react-router-dom"
 import { Provider } from "./components/ui/provider"
 import AuthProvider from './contexts/AuthContext.jsx'
 import CartProvider from './contexts/CartContext.jsx'
+import ChatbotProvider from './contexts/ChatbotContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
           <CartProvider>
-            <App/>
+             <ChatbotProvider>
+                <App/>
+             </ChatbotProvider>
           </CartProvider>
         </AuthProvider>
       </BrowserRouter>
