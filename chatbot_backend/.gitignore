@@ -1,0 +1,6 @@
+.env
+assistant.db
+assistant.db-shm
+assistant.db-wal
+chatbot.ipynb
+test_client.py

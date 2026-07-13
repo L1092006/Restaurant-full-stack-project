@@ -6,6 +6,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from "./components/ui/toaster"
 import { Widget } from '@ryaneewx/react-chat-widget';
 import '@ryaneewx/react-chat-widget/lib/styles.css';
+import ChatWidget from './components/ChatWidget'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -22,6 +23,7 @@ function App() {
   return (
     <>
       <Toaster/>
+      <ChatWidget/>
       <Routes>
         <Route element={<Layout/>}>
           <Route path="/" element={<Home/>}/>
