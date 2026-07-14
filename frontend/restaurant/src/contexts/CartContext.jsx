@@ -18,6 +18,7 @@ export default function CartProvider({ children }) {
                 if(!res.ok) return;
                 const data = await res.json();
                 setCartItems(data);
+                return data;
             }
             catch (e) {
                 console.log(e.message);
@@ -30,6 +31,8 @@ export default function CartProvider({ children }) {
     //  Error with messages for not enough items (but still add the item to the cart and then reload the menu items), non-ok response or existing call. Normal TypeError for failed fetch call
     const addItemRef = useRef(new Set());
     const addItem = useCallback(async (menuitem_id, addAmount) => {
+        // Get the latest cart_items from the backend to avoid using old values
+        const cartItems = await loadCart();
         // Define the messages for different errors
         const errorMessages = {
             // Not enough items
@@ -72,7 +75,15 @@ export default function CartProvider({ children }) {
                     
                             
                     if(!res.ok) throw new Error(errorMessages.notOk);
-                    const updatedItem = await res.json();
+
+                    try{
+                         const updatedItem = await res.json();
+                    }
+                    // Handle empty response
+                    catch (e) {
+                        continue;
+                    }
+                   
                             
                     done = true;
                     // Check if the current quantity exceed the stock
@@ -136,8 +147,8 @@ export default function CartProvider({ children }) {
         }
         setCartNumber(num);
     }, [cartItems]);
-
-    const value = useMemo(() => ({ cartNumber, setCartNumber, cartItems, setCartItems, loadCart, addItem }), [cartNumber, cartItems, loadCart, addItem]);
+ const value = useMemo(() => ({ cartNumber, setCartNumber, cartItems, setCartItems, loadCart, addItem }), [cartNumber, cartItems, loadCart, addItem]);
+   
 
     return (
         <CartContext.Provider value={value}>

@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import json
 import sqlite3
+import asyncio
 from langchain_openrouter import ChatOpenRouter
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
@@ -43,6 +44,10 @@ class Chatbot:
     all_messages: dict
     # DEBUG=True allow the graph to print logs
     DEBUG: bool
+
+    # Check if a tool is currently running
+    tool_run: bool
+    
     # The checkpoint db name
     checkpoint_db: str
     # The compiled graph
@@ -138,24 +143,43 @@ class Chatbot:
         # The maximum length (words) of the current summary stored in the graph
         summary_length = limit / 6
         # The maximum number of interactions in the history
-        history_length = 15
+        history_length = 30
 
 
         # Define tools and chatbot with tools
+        self.tool_run = False
+        # Helper function: take a dict message and send to the client after tool_run is False, set tool_run to True
+        async def send(message_dict):
+             # wait
+            while self.tool_run:
+                await asyncio.sleep(0.1)
+            self.tool_run = True
+            message_str = json.dumps(message_dict)
+            await connection.send(message_str)  
+
+        # Helper function: wait for a message from client which contains the tool_result and return it. Set tool_run to False
+        async def recv():
+            # Wait for the client to return the result
+            result_str = await connection.recv()
+            self.tool_run = False
+            result_dict = json.loads(result_str)
+            content = result_dict["content"]
+            return {
+                "status": content["status"],
+                "result": content["result"]
+            }
         # FIXME: update the tools
-        # Send message to the client
+        # Send message to the client 
         @tool
         async def send_message(message: str):
             """Send the message to the user. Just give your message as a string which contains only the content of your message. Do not put extra things"""
             print(message)
-            
-            message_dict = {
+
+            await send({
                 "type": "chat_message",
                 "content": message
-            }
-
-            message_str = json.dumps(message_dict)
-            await connection.send(message_str)            
+            })
+            self.tool_run = False
             return {
                 "status": "success",
                 "result": "Sent."
@@ -165,28 +189,24 @@ class Chatbot:
         @tool
         def terminate():
             """End the current invocation after handling the user query. Do not call this with other tools in one message since it will stop you immediately and not execute other tools."""
-            return
+            return {
+                "status": "fail",
+                "result": "If you receive this, it means you called this tool along with other tools in 1 message. This is forbidden. Call only terminate tool in your next message."
+            }
 
         @tool
-        def get_recommended_items():
-            """Get the reccomended items for sale on this web."""
-            return [
-                {
-                    "id": 1,
-                    "title": "Fried Chicken",
-                    "description": "Western fried chicken. For those who are here but don't enjoy Vietnamese food."
-                },
-                {
-                    "id": 2,
-                    "title": "Beef Pho",
-                    "description": "Traditional Vietnamese beef Pho"
-                },
-                {
-                    "id": 3,
-                    "title": "Quang Noodle",
-                    "description": "Traditional Vietnamese Quang Noodle. More flavorful than Pho but overshadow the taste of meat and vegetable."
-                },
-            ]
+        async def get_items():
+            """Get all items for sale on this web. The result is a json containing all items.
+            """
+            await send({
+                "type": "tool_call",
+                "content": {
+                    "tool_name": "get_items",
+                    "arguments": {}
+                }
+            })
+
+            return await recv()
         
         @tool(description=f"""
             Navigate the web for the user in their browser to a specific path. Typically used when the user ask to show them somthing.
@@ -199,17 +219,7 @@ class Chatbot:
             
             """)
         async def navigate(path: str):
-            
-
-            paths = [k for k in client["paths_schema"]]
-
-            if path not in paths:
-                return {
-                    "status": "fail",
-                    "result": "The user web has not been navigated."
-                }
-            
-            message_dict = {
+            await send({
                 "type": "tool_call",
                 "content": {
                     "tool_name": "navigate",
@@ -217,22 +227,67 @@ class Chatbot:
                         "path": path
                     }
                 }
-            }
+            })
 
-            message_str = json.dumps(message_dict)
-            await connection.send(message_str)
-
-            # Wait for the client to return the result
-            result_str = await connection.recv()
-            result_dict = json.loads(result_str)
-            content = result_dict["content"]
-            return {
-                "status": content["status"],
-                "result": content["result"]
+            return await recv()
+        
+        @tool
+        async def add_item(items: list[dict]):
+            """
+            Add or remove num items with the id item_id to the user cart
+            INPUT: a list of json objects each has the below schema
+            {
+                "id": the id of the item to add. THIS IS THE ID OF A MENU ITEM ON THE WEB, NOT THE ID OF THINGS LIKE CARTITEMS, ORDERITEMS,... IT'S THE ID OF ITEMS RETURNED WHEN CALLING GET_ITEMS TOOL
             }
+            USE THE EXACT KEY IN EACH OBJECT
+            num can be negative in which case num items will be removed from the cart.
+            """
+
+            await send({
+                "type": "tool_call",
+                "content": {
+                    "tool_name": "add_item",
+                    "arguments": {
+                        "items": items
+                    }
+                }
+            })
+
+            return await recv()
         
+        @tool
+        async def get_cartitems():
+            """
+            Get all the items in the current cart of the user
+            """
+            await send({
+                "type": "tool_call",
+                "content": {
+                    "tool_name": "get_cartitems",
+                    "arguments": {}
+                }
+            })
+
+            return await recv()
         
-        tools = [send_message, terminate, get_recommended_items, navigate]
+        @tool
+        async def get_orders():
+            """
+            Get all orders of the user
+            """
+            await send({
+                "type": "tool_call",
+                "content": {
+                    "tool_name": "get_orders",
+                    "arguments": {}
+                }
+            })
+
+            return await recv()
+
+
+        
+        tools = [send_message, terminate, navigate, get_items, add_item, get_cartitems, get_orders]
         string_parser = StrOutputParser()
         chat_with_tools = chat.bind_tools(tools)
         summary_agent = chat | string_parser
@@ -268,7 +323,7 @@ class Chatbot:
         # DEFINE NODES OF THE GRAPH
 
         # Initialization node
-        # Fetch data to make a complete system_prompt, add a status message to messages
+        # Fetch data to make a complete system_prompt, add a status message to messages, remove all the tool result of the previous calls
         def init_node(state: State) -> dict:
             base_system_prompt = system_prompts["chatbot"]
 
@@ -334,7 +389,9 @@ class Chatbot:
             }
 
             status_message = HumanMessage(f"This is just a status message made and injected by the system, not by the user. Now is {datetime.now().isoformat()}. You have been invoked again to address a user query.")
-            new_state = {**new_state, "system_prompts": system_prompt, "conversation_memories": conversation_memories, "web_info": web_info, "messages": [status_message]}
+            # Remove all the tool results of the previous invocation
+            new_messages = [status_message] + [RemoveMessage(id=message.id) for message in state["messages"] if message.type == "tool"]
+            new_state = {**new_state, "system_prompts": system_prompt, "conversation_memories": conversation_memories, "web_info": web_info, "messages": new_messages}
             
             if DEBUG:
                 log(f"init_node\n{new_state}\n\n")
@@ -343,10 +400,12 @@ class Chatbot:
 
         # Node to call the chatbot
         def reasoning(state: State) -> State:
+            if DEBUG:
+                log(f"reasoning\nstate['messages']: {state['messages']}\n\n")
             ai_message = chat_with_tools.invoke([SystemMessage(state['system_prompts']['chatbot'])] + state["messages"])
             new_state = {"messages": [ai_message]}
             if DEBUG:
-                log(f"reasoning\n{new_state}\n\n")
+                log(f"Response: {new_state}\n\n")
             return new_state
         
         # If the history is long enough, summarize and add its first half to the summary and cut the excess first part of summary.
@@ -401,7 +460,12 @@ class Chatbot:
 
             # new_state = {"messages": [remove_message, ai_message]}
 
-            new_state = {"messages": [HumanMessage("This is not sent by the user you're chatting with. This is injected by the server system to remind you that your previous response is your reasoning. Now you can call a tool or keep reasoning. DO NOT REPLY TO THIS.")]}
+            # new_state = {"messages": [HumanMessage("This is not sent by the user you're chatting with. This is injected by the server system to remind you that your previous response is your reasoning. Now you can call a tool or keep reasoning. DO NOT REPLY TO THIS.")]}
+            new_state = {}
+
+            # If the previous message is an assistant message, ask the chatbot to call a tool
+            if state["messages"][-1].type == "ai":
+                new_state = {"messages": [HumanMessage("This is a message injected by the server system, not by the user. Your previous message is your reasoning. Upon see this message, call a tool to continue your work or send a message to the user. DO NOT OUTPUT AN AI (ASSISTANT) MESSAGE AGAIN. YOU MUST CALL A TOOL NOW.")]}
             if DEBUG:
                 log(f"think\n{new_state}\n\n")
             return new_state
@@ -431,7 +495,7 @@ class Chatbot:
             # if the last message has tool calls
             if hasattr(last_message, "tool_calls") and last_message.tool_calls:
                 # If a tool called is terminate
-                if "terminate" in [c["name"] for c in last_message.tool_calls]:
+                if "terminate" in [c["name"] for c in last_message.tool_calls] and len(last_message.tool_calls) == 1:
                     return "shutdown"
                 else:
                     return "tools"

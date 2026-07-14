@@ -115,7 +115,7 @@ async def handler(websocket):
     
     # Start the main loop
     try:
-        chatbot = Chatbot(websocket, cloud=False, backend=backend, client=client, DEBUG=DEBUG)
+        chatbot = Chatbot(websocket, cloud=True, backend=backend, client=client, DEBUG=DEBUG)
         await chatbot.compile()
         while True:
             message = await recv()
@@ -134,7 +134,7 @@ async def handler(websocket):
                 chatbot.client = {**chatbot.client, **content}
                 # If the user is updated, update all the user info
                 # FIXME: use user_profile and last_conversation from the chatbot_db
-                if "user" in content:
+                if "user_id" in content:
                     chatbot.client["user_profile"] = "No info. First time customer"
                     chatbot.client["last_conversation"] = "None"
             else:

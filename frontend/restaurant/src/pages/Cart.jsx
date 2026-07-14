@@ -86,7 +86,7 @@ export default function Cart() {
         {
             cartItems.map(item => (
             <Link to={`/menu/${item.menuitem.id}`} key={item.id}>
-                <Card.Root flexDirection="row"  color={style.color} colorPalette="white" _hover={{shadow: "lg"}} h={style.h}> 
+                <Card.Root flexDirection="row"  color={style.color} colorPalette="white" _hover={{shadow: "lg"}} h={style.h} maxW={"50rem"} overflow={"hidden"}> 
                     <Image src={item.menuitem.path ? item.menuitem.path : placeholder} aspectRatio={{base: 1/1, lg: 6/4}}/>
                     <Card.Body bg="whitesmoke" fontSize="1rem">
                         <Heading as="h3" mb="0.5rem">{item.menuitem.title}</Heading>

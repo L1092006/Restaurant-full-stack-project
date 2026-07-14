@@ -27,7 +27,7 @@ export default function ChatWidget() {
         <Widget
           handleNewUserMessage={handleNewUserMessage}
           profileAvatar={placeholder}
-          title="Your assistant Mai"
+          title="Your assistant Vbot"
           subtitle="Welcome!"
           resizable={true}
           showCloseButton={true}

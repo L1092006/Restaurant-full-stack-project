@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCart } from "./CartContext";
+import { useLocation, useNavigate, matchPath } from "react-router-dom";
 
 const ChatbotContext = createContext();
 
@@ -14,8 +15,10 @@ const maxConnect = 10;
 
 export default function ChatbotProvider({ children }) {
     const { callAPI, isAuthenticated, user } = useAuth();
+    const { cartNumber, cartItems, addItem } = useCart();
     // Get the path info
     const location = useLocation();
+    const navigate = useNavigate();
 
     const [ socket, setSocket ] = useState(null);
     // The number of attempts to connect to the chatbot server
@@ -23,7 +26,7 @@ export default function ChatbotProvider({ children }) {
     // The status of chatbot, ready = true of usable
     const  [ ready, setReady ] = useState(false);
 
-    const navigate = useNavigate();
+    
 
     // Function to connect to the chatbot server.
     const connect = useCallback(() => {
@@ -126,7 +129,7 @@ export default function ChatbotProvider({ children }) {
             sendStatusUpdate();
         }
 
-        socket.onmessage = (event) => {
+        socket.onmessage = async (event) => {
             if(DEBUG) console.log(`In onmessage, event data: ${event.data}`)
             
 
@@ -139,18 +142,176 @@ export default function ChatbotProvider({ children }) {
                 // Handle tool calls
                 // FIXME: add tool call handlers
                 else if (message.type === "tool_call") {
+                    const args = content["arguments"]
                     // Navigate tool call
                     if(content["tool_name"] === "navigate") {
+                        const path = args["path"];
+                        // Function to validate the path
+                        const isValidRoute = (path) => {
+                            // List the patterns your app supports
+                            const patterns = [
+                                '/',
+                                '/login',
+                                '/signup',
+                                '/menu',
+                                '/menu/:id',
+                                '/cart',
+                                '/checkout',
+                                '/account',
+                                '/account/orders',
+                                '/account/orders/:id',
+                            ];
+
+                            return patterns.some(pattern => matchPath({ path: pattern, end: true }, path));
+                        }
+
+                        if (isValidRoute(path)) {
+                            sendMessage({
+                                "type": "tool_result",
+                                "content": {
+                                    "status": "success",
+                                    "result": `The use web path has been navigated to ${content["arguments"]["path"]}`
+                                }
+                            })
+                            console.log(`About to navigate to: ${path}`)
+                            navigate(path);
+                        }
+                        else {
+                            sendMessage({
+                                "type": "tool_result",
+                                "content": {
+                                    "status": "fail",
+                                    "result": `Invalid path`
+                                }
+                            })
+                        }
+                       
+                    }
+
+                    // Get menu items tool call
+                    else if (content["tool_name"] == "get_items") {
+                        // Helper function to get all items and categories
+                        const getContent = async () => {
+                            let cats = null;
+                            let allItems = null;
+                            try {
+                                const catRes = await callAPI("/categories/");
+                                const itemRes = await callAPI("/items/");
+
+                                // If res is not ok, throw an error and return in the catch
+                                if(!catRes.ok || !itemRes.ok) throw new Error('callAPI successfully but res is not ok');
+
+                                cats = await catRes.json();
+                                allItems = await itemRes.json();
+                            }
+                            catch (e) {
+                                console.log(e.message);
+                                return;
+                            }
+
+                            const response = {};
+                            for(let cat of cats) {
+                                response[cat.title] = [];
+                            }
+                            for(let item of allItems) {
+                                response[item.category.title].push(item);
+                            }
+                            return response;
+                        };
+
+                        const response = await getContent();
                         sendMessage({
                             "type": "tool_result",
                             "content": {
                                 "status": "success",
-                                "result": `The use web path has been navigated to ${content["arguments"]["path"]}`
+                                "result": JSON.stringify(response)
                             }
-                        })
-                        navigate(content["arguments"]["path"]);
+                        });
+
                     }
+                        // Add item to cart tool call
+                    else if(content["tool_name"] == "add_item") {
+                        try {
+                            const items = args["items"];
+                            for(const item of items) {
+                                await addItem(item["id"], item["num"]);
+                            }
+                            sendMessage({
+                                "type": "tool_result",
+                                "content": {
+                                    "status": "success",
+                                    "result": "Item(s) added."
+                                }
+                            });
+                        }
+                        catch (e) {
+                            sendMessage({
+                                "type": "tool_result",
+                                "content": {
+                                    "status": "fail",
+                                    "result": e
+                                }
+                            });
+                            throw e;
+                        }
+                    }
+                    // Get cartitems tool call
+                    else if(content["tool_name"] == "get_cartitems") {
+                        // Get the total price of all items
+                        let total_price = 0;
+                        let total_price_after_tax = 0;
+                        for(const item of cartItems) {
+                            total_price += item.total_price;
+                            total_price_after_tax += item.total_price_after_tax;
+                        }
+                        sendMessage({
+                            "type": "tool_result",
+                            "content": {
+                                "status": "success",
+                                "result": {
+                                    "items": cartItems,
+                                    "total_price": total_price,
+                                    "total_price_after_tax": total_price_after_tax
+                                }
+                            }
+                        });
+                    }
+                    // Get orders tool call
+                    else if(content["tool_name"] == "get_orders") {
+                        // Function to get all user orders
+                        const getOrders = async () => {
+                            try {
+                                const res = await callAPI(
+                                    `/orders/`, {auth: true}
+                                );
+                                if(!res.ok) throw new Error(`callAPI successfully but res code is ${res.status}`);
+
+                                const body = await res.json();
+                                body.reverse();
+
+                                for (let i = 0; i < body.length; i++) {
+                                    body[i].datetime = body[i].datetime.split("T")[0];
+                                }
+                                return body;
+
+                            }
+                            catch (e) {
+                                console.log(e.message);
+                            }
+                        }
+                        sendMessage({
+                            "type": "tool_result",
+                            "content": {
+                                "status": "success",
+                                "result": {
+                                    "items": await getOrders(),
+                                }
+                            }
+                        });
+                    }
+
                 }
+                
                 else throw TypeError(`In onmessage, unexpected message.type ${message.type}`)
             }
             else {
@@ -172,7 +333,7 @@ export default function ChatbotProvider({ children }) {
         }
 
         setReady(true);
-    }, [socket, user, location, sendMessage, connect, sendStatusUpdate]) ;
+    }, [socket, user, location, sendMessage, connect, sendStatusUpdate, cartItems, addItem]) ;
 
     // When the user is changed, send a status update
     useEffect(() => {sendStatusUpdate()}, [user])
