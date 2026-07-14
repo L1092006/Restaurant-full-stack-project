@@ -6,7 +6,7 @@ import  placeholder from "../assets/img/placeholder.jpg";
 
 export default function ChatWidget() {
     // Get vars fromm chatbot context
-    const { ready, sendChat, chatMessages } = useChatbot();
+    const { ready, socket, sendChat, chatMessages } = useChatbot();
 
     const handleNewUserMessage = useCallback((message) => {
         const openai_message = {
@@ -23,14 +23,21 @@ export default function ChatWidget() {
         }
     }, [chatMessages]);
 
-    return (
-        <Widget
-          handleNewUserMessage={handleNewUserMessage}
-          profileAvatar={placeholder}
-          title="Your assistant Vbot"
-          subtitle="Welcome!"
-          resizable={true}
-          showCloseButton={true}
-        />
-    )
+    if (!socket || !ready)
+    {
+        return null;
+    }
+    else {
+        return (
+            <Widget
+            handleNewUserMessage={handleNewUserMessage}
+            profileAvatar={placeholder}
+            title="Your assistant Vbot"
+            subtitle="Welcome!"
+            resizable={true}
+            showCloseButton={true}
+            />
+        )
+    }
+        
 }

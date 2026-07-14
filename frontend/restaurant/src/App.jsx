@@ -17,6 +17,9 @@ import Checkout from './pages/Checkout'
 import SingleOrder from './pages/SingleOrder'
 import Orders from './pages/Orders'
 import Account from './pages/Account'
+import SingleMenuItem from './pages/SingleMenuItem'
+import Contact from './pages/Contact'
+import About from './pages/About'
 import Implementing from './pages/Implementing'
 
 function App() {
@@ -35,10 +38,10 @@ function App() {
           <Route path="/account" element={<Account/>}/>
           <Route path="/account/orders" element={<Orders/>}/>
           <Route path="/account/orders/:id" element={<SingleOrder/>}/>
-          {/* FIXME: Implement the pages for the below routes */}
-          <Route path="/about" element={<Implementing/>}/>
-          <Route path="/menu/:id" element={<Implementing/>}/>
-          <Route path="/contact" element={<Implementing/>}/>
+          <Route path="/menu/:id" element={<SingleMenuItem/>}/>
+          <Route path="/contact" element={<Contact/>}/>
+          <Route path="/about" element={<About/>}/>
+          {/* FIXME: Implement the pages for the below routes */}         
         </Route>
       </Routes>
     </>

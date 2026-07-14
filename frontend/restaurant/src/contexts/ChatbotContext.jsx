@@ -140,7 +140,6 @@ export default function ChatbotProvider({ children }) {
                     setChatMessages(l => [...l, {role: "assistant", content: content}]);
                 }
                 // Handle tool calls
-                // FIXME: add tool call handlers
                 else if (message.type === "tool_call") {
                     const args = content["arguments"]
                     // Navigate tool call

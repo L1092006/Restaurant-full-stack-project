@@ -1,11 +1,10 @@
 import { Flex, Image, Text, Card, Heading, Box } from "@chakra-ui/react";
-import callAPI from "../utils/callAPI";
+import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import  placeholder from "../assets/img/placeholder.jpg";
 import { Link, useOutletContext } from "react-router-dom";
 
 export default function Home() {
-  const [homeContent, setHomeContent ] = useState(null);
   const { mainSize } = useOutletContext();
   const bannerSize = {
     ratio: {
@@ -50,11 +49,52 @@ export default function Home() {
 
   const defaultFont = "cursive";
 
+  const [homeContent, setHomeContent ] = useState(null);
+  const { callAPI } = useAuth();
 
-  // FIXME: improve callAPI if needed
   useEffect(() => {
-    callAPI("homeContent").then(res => setHomeContent(res));
-  }, [])
+    // Helper function to get all content for homepage
+    const getContent = async () => {
+        let cats = null;
+        let allItems = null;
+        try {
+            const catRes = await callAPI("/categories/");
+            const itemRes = await callAPI("/items/");
+
+            // If res is not ok, throw an error and return in the catch
+            if(!catRes.ok || !itemRes.ok) throw new Error('callAPI successfully but res is not ok');
+
+            cats = await catRes.json();
+            allItems = await itemRes.json();
+        }
+        catch (e) {
+            console.log(e.message);
+            return;
+        }
+
+        const items = [];
+        let num = 0;
+        for(let item of allItems) {
+            if(item.featured) {
+              items.push(item);
+              num++;
+            }
+
+            if(num >= 4) break;
+        }
+        
+        const content = {
+          "description": "GRAND OPENING!",
+          "path": null,
+          "recommendedItems": items
+        };
+
+        setHomeContent(content);
+
+  };
+
+  getContent();
+  }, []);
 
   return (
     <>
@@ -75,9 +115,10 @@ export default function Home() {
                 {homeContent.recommendedItems.map(item => {
                   return (
                     <Link to={`/menu/${item.id}`}  key={item.id}>
-                      <Card.Root  _hover={itemsConfig.hover}>
+                      <Card.Root  _hover={itemsConfig.hover} h="25vh" overflow="hidden">
                           <Image  src={item.path ? item.path : placeholder} alt={`An image of ${item.name}`}  aspectRatio={itemsConfig.size.ratio} />
-                        <Card.Body bg="whitesmoke">
+                        <Card.Body bg="whitesmoke" color={textColor}>
+                          <Card.Title>{item.title}</Card.Title>
                           <Text color={textColor}>{item.description}</Text>
                         </Card.Body>
                       </Card.Root>

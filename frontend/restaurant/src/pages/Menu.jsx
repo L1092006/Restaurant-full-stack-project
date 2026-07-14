@@ -1,5 +1,5 @@
 import { useOutletContext, Link } from "react-router-dom";
-import { Tabs, Text, Card, Image, Grid, Heading, IconButton } from "@chakra-ui/react";
+import { Tabs, Text, Card, Image, Grid, Heading, IconButton, HStack, Spacer } from "@chakra-ui/react";
 import { useEffect, useState, useCallback } from "react";
 import { IoMdAdd } from "react-icons/io";
 import { toaster } from "../components/ui/toaster";
@@ -111,11 +111,19 @@ export default function Menu() {
                                     <Card.Root  color={tabStyle.color} colorPalette="white" _hover={{shadow: "lg"}}> 
                                         <Image src={item.path ? item.path : placeholder} aspectRatio={6/4}/>
                                         <Card.Body bg="whitesmoke">
-                                            <Heading as="h3" mb="0.5rem">{item.title}</Heading>
+                                            <HStack>
+                                                <Heading as="h3" mb="0.5rem">{item.title}</Heading>
+                                                <Text color="red">{item.featured ? "Hot" : null}</Text>
+                                            </HStack>
                                             <Text>{item.description}</Text>
-                                            <IconButton onClick={(e) => addHandler(e, item)} variant="solid" size="xs" ml="auto" backgroundColor="green.800" _hover={{backgroundColor: "green.700"}}>
+                                            <HStack fontSize='1.2rem'>
+                                                <Text mr="1.2rem">{`Price: $${item.price}`}</Text>
+                                                <Spacer/>
+                                                <IconButton onClick={(e) => addHandler(e, item, 1)} variant="solid" size="xs" ml="auto" color="white" backgroundColor="green.800" _hover={{backgroundColor: "green.700"}}>
                                                 <IoMdAdd/>
-                                            </IconButton>
+                                                </IconButton>
+                                            </HStack>
+                                            {(item.stock < 5) ? <Text color="red.500">Warning: Low stock. Only {item.stock} items in stock.</Text> : ''}
                                         </Card.Body>
                                     </Card.Root>
                                 </Link>
