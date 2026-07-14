@@ -4,3 +4,7 @@ assistant.db-shm
 assistant.db-wal
 chatbot.ipynb
 test_client.py
+users.db
+test_users.db
+init.sql
+update.sql

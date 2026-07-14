@@ -17,6 +17,7 @@ from langgraph.graph import MessagesState, START, END, StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from pydantic import BaseModel, Field
 import aiosqlite
 from pinecone import Pinecone
 from prompts import system_prompts
@@ -47,6 +48,9 @@ class Chatbot:
 
     # Check if a tool is currently running
     tool_run: bool
+
+    # chat model
+    chat = None
     
     # The checkpoint db name
     checkpoint_db: str
@@ -112,11 +116,11 @@ class Chatbot:
         cloud_model = os.getenv('OPENROUTER_MODEL')
         # Create chat models
         if cloud:
-            chat = ChatOpenRouter(model=cloud_model, temperature=0.2, top_p=0.2,
+            self.chat = ChatOpenRouter(model=cloud_model, temperature=0.2, top_p=0.2,
                             reasoning={'effort': 'none'}
             )
         else: 
-            chat = ChatOllama(model='hf.co/unsloth/gemma-4-26B-A4B-it-qat-GGUF:UD-Q4_K_XL', temperature=0.2, top_p=0.2, reasoning=False)
+            self.chat = ChatOllama(model='hf.co/unsloth/gemma-4-26B-A4B-it-qat-GGUF:UD-Q4_K_XL', temperature=0.2, top_p=0.2, reasoning=False)
         
 
         # Set up pinecone connection
@@ -141,7 +145,7 @@ class Chatbot:
         # The maximum length (words) of each memory unit stored in pinecone
         memory_length = int(os.getenv('MEMORY_LENGTH'))
         # The maximum length (words) of the current summary stored in the graph
-        summary_length = limit / 6
+        summary_length = 500
         # The maximum number of interactions in the history
         history_length = 30
 
@@ -289,8 +293,8 @@ class Chatbot:
         
         tools = [send_message, terminate, navigate, get_items, add_item, get_cartitems, get_orders]
         string_parser = StrOutputParser()
-        chat_with_tools = chat.bind_tools(tools)
-        summary_agent = chat | string_parser
+        chat_with_tools = self.chat.bind_tools(tools)
+        summary_agent = self.chat | string_parser
         
 
         # Helper function for the graph
@@ -426,6 +430,7 @@ class Chatbot:
             system_message = SystemMessage(state["system_prompts"]["summary_agent"])
 
             chat_message = HumanMessage(f"""\
+        RULES: THE NEW SUMMARY MUST CONTAINS LESS THAN {summary_length} words
         SUMMARY: 
         {state["summary"]}
         MESSAGES:
@@ -433,6 +438,8 @@ class Chatbot:
         """.strip())
 
             new_summary = summary_agent.invoke([system_message, chat_message])
+            # only get the last summary_length words
+            new_summary = " ".join(new_summary.split())
 
             # # Get the remaining part of summary
             # remain_summary = ' '.join(state['summary'].split()[int((-1)*summary_length//2):])
@@ -527,5 +534,34 @@ class Chatbot:
         # Use user_id from web backend as thread_id
         config = {'configurable': {'thread_id': f"{self.client['user_id']}"}}
         await self.compiled_graph.ainvoke({"messages": [HumanMessage(new_message)], "latest_user_message": new_message}, config=config)
+
+
+    # Get the updated user profile, last conversation summary and all messages for storage
+    def get_summary_and_messages(self):
+        # Conversation string
+        con = [f"{m.type}: {m.content}" for m in self.all_messages]
+        con = "\n".join(con)
+
+        class Summary(BaseModel):
+            summary: str = Field(description="The summary of the conversation")
+            user_profile: str = Field(description="The updated user profile")
+        chat_with_schema = self.chat.with_structured_output(Summary)
+        res = chat_with_schema.invoke(f"""
+        Below is a conversation between a chatbot assistant for a e-commerce web and a user: 
+        {con}
+        Below is the user profile which summarize the main points about the user:
+        {self.client["user_profile"]}
+        Generate a summary about this conversation and a new updated version of the user profile based on the new conversation.
+        """)
+
+        return {
+            "user_id": self.client["user_id"],
+            "summary": res.summary,
+            "user_profile": res.user_profile,
+            "messages": [m.content for m in self.all_messages if m.type == "human"]
+        }
+        
+        
+
 
     

@@ -3,9 +3,12 @@ from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosedOK
 import json
 import uuid
+from pathlib import Path
+import sqlite3
 from chatbot import Chatbot
 
 DEBUG = True
+db_name = "users.db"
 
 """
 A MESSAGE SENT BY THE CLIENT IS A JSON STRING WITH THE SCHEMA:
@@ -86,35 +89,54 @@ async def handler(websocket):
             await websocket.close(code=1008, reason=f"Incorrect message format. Server raised exception {e}")
             raise e
         
-    # SET UP
-    # Ask the client about web state by receive an status_update message. Close the connection if the client doesn't send a status update upon connection
-    data = await recv()
-    if data["type"] != types[0]:
-        await websocket.close(code=1008, reason=f"Make sure the first message upon connection is a {types[0]}")
-        return
-    # Info about the client
-    client = data["content"]
-    # Add user_profile and last_conversation from the chatbot_db
-    # If the user hasn't logged in, add some extra info
-    if not client["user_id"]:
-        client["user_id"] = f"anonymous-{uuid.uuid4()}"
-        client["username"] = "Anonymous User"
-        client["user_profile"] = "An anonymous user who hasn't logged in"
-        client["last_conversation"] = "Unknown"
-    # FIXME: use user_profile and last_conversation from the chatbot_db
-    else:
-        client["user_profile"] = "No info. First time customer"
-        client["last_conversation"] = "None"
-
-    # Get the backend info
-    # FIXME: send the request to backend to get info
-    backend = {
-        "supported_urls": [],
-        "additional_info": "None"
-    }
-    
+    chatbot = None
     # Start the main loop
     try:
+         # SET UP
+        # Ask the client about web state by receive an status_update message. Close the connection if the client doesn't send a status update upon connection
+        data = await recv()
+        if data["type"] != types[0]:
+            await websocket.close(code=1008, reason=f"Make sure the first message upon connection is a {types[0]}")
+            return
+        # Info about the client
+        client = data["content"]
+
+        # Helper: get the user_profile and last_conversation from user id from web backend
+        def get_userinfo(user_id):
+            conn = sqlite3.connect(db_name)
+            cursor = conn.cursor()
+            res = cursor.execute("""SELECT "id", "user_profile", "last_conversation" FROM "users" WHERE "backend_id" = ?;""", (user_id,))
+            res_tup = res.fetchall()
+            # If there's no user like that, insert a new user:
+            if len(res_tup) == 0:
+                cursor.executemany('INSERT INTO users ("backend_id", "user_profile", "last_conversation") VALUES(?, ?, ?)', [(user_id, "First time user", "None")])
+                res_tup = [(None, "First time user", "None")]
+                conn.commit()
+            cursor.close()
+            return {
+                "id": res_tup[0][0],
+                "user_profile": res_tup[0][1],
+                "last_conversation": res_tup[0][2]
+            }
+        # Add user_profile and last_conversation from the chatbot_db
+        # If the user hasn't logged in, add some extra info
+        if not client["user_id"]:
+            client["user_id"] = f"anonymous-{uuid.uuid4()}"
+            client["username"] = "Anonymous User"
+            client["user_profile"] = "An anonymous user who hasn't logged in"
+            client["last_conversation"] = "Unknown"
+        else:
+            data = get_userinfo(client["user_id"])
+            client["user_profile"] = data["user_profile"]
+            client["last_conversation"] = data["last_conversation"]
+
+        # Get the backend info
+        # FIXME: send the request to backend to get info
+        backend = {
+            "supported_urls": [],
+            "additional_info": "None"
+        }
+    
         chatbot = Chatbot(websocket, cloud=True, backend=backend, client=client, DEBUG=DEBUG)
         await chatbot.compile()
         while True:
@@ -135,8 +157,9 @@ async def handler(websocket):
                 # If the user is updated, update all the user info
                 # FIXME: use user_profile and last_conversation from the chatbot_db
                 if "user_id" in content:
-                    chatbot.client["user_profile"] = "No info. First time customer"
-                    chatbot.client["last_conversation"] = "None"
+                    data = get_userinfo(content["user_id"])
+                    chatbot.client["user_profile"] = data["user_profile"]
+                    chatbot.client["last_conversation"] = data["last_conversation"]
             else:
                 print(f"Receive {message['type']} unexpectedly")
     except ConnectionClosedOK as e:
@@ -145,8 +168,49 @@ async def handler(websocket):
         print("close2", e)
         # await websocket.close(code=1011, reason=f"Server error. Server raised exception {e}")
         raise Exception(f"Server error. Server raised exception {e}")
+    # Update the user info
+    finally:
+        if chatbot:
+            data = chatbot.get_summary_and_messages()
+            conn = sqlite3.connect(db_name)
+            cursor = conn.cursor()
+            # Update the profile and last conversation
+            cursor.execute("""
+            UPDATE "users"
+            SET "user_profile" = ?, "last_conversation" = ?
+            WHERE "backend_id" = ?
+            """, (data["user_profile"], data["summary"], data["user_id"],))
+
+            # Insert the new messages
+            userinfo = get_userinfo(data["user_id"])
+            new_messages = [(userinfo["id"], m) for m in data["messages"]]
+            cursor.executemany('INSERT INTO user_messages("user_id", "content") VALUES(?, ?)', new_messages)
+            conn.commit()
+            conn.close()
 
 async def main():
+
+    # Init the db if not exist
+    if not Path("users.db").exists():
+        conn = sqlite3.connect(db_name)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE users (
+                "id" INTEGER PRIMARY KEY,
+                "backend_id" TEXT NOT NULL UNIQUE,
+                "user_profile" TEXT,
+                "last_conversation"
+            );
+        """)
+        cursor.execute("""
+            CREATE TABLE user_messages (
+                "id" INTEGER PRIMARY KEY,
+                "user_id" INTEGER,
+                "content" TEXT,
+                FOREIGN KEY("user_id") REFERENCES "users"("id")
+            );""")
+        conn.commit()
+        conn.close()
     async with serve(handler, "", 8001) as server:
         await server.serve_forever()
     
