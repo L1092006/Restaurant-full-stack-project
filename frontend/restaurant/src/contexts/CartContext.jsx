@@ -78,6 +78,8 @@ export default function CartProvider({ children }) {
 
                     try{
                          const updatedItem = await res.json();
+                         // Check if the current quantity exceed the stock
+                        if(updatedItem.quantity > updatedItem.menuitem.stock) throw new Error(errorMessages.notEnough);
                     }
                     // Handle empty response
                     catch (e) {
@@ -86,8 +88,7 @@ export default function CartProvider({ children }) {
                    
                             
                     done = true;
-                    // Check if the current quantity exceed the stock
-                    if(updatedItem.quantity > updatedItem.menuitem.stock) throw new Error(errorMessages.notEnough);
+                    
                     
                 }
                 catch(e) {

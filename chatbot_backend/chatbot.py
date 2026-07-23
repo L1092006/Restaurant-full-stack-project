@@ -241,7 +241,8 @@ class Chatbot:
             Add or remove num items with the id item_id to the user cart
             INPUT: a list of json objects each has the below schema
             {
-                "id": the id of the item to add. THIS IS THE ID OF A MENU ITEM ON THE WEB, NOT THE ID OF THINGS LIKE CARTITEMS, ORDERITEMS,... IT'S THE ID OF ITEMS RETURNED WHEN CALLING GET_ITEMS TOOL
+                "id": the id of the item to add. THIS IS THE ID OF A MENU ITEM ON THE WEB, NOT THE ID OF THINGS LIKE CARTITEMS, ORDERITEMS,... IT'S THE ID OF ITEMS RETURNED WHEN CALLING GET_ITEMS TOOL,
+                "num": the number of this item to added 
             }
             USE THE EXACT KEY IN EACH OBJECT
             num can be negative in which case num items will be removed from the cart.
