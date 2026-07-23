@@ -41,7 +41,9 @@ class SignUpViewTests(APITestCase):
         response = self.client.post(self.url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data, {"message": "success"})
+        res_data = response.data
+        res_data.pop("id", None)
+        self.assertEqual(res_data, {"username": data["username"], "first_name": data["first_name"], "last_name": data["last_name"], "email": data["email"]})
 
         user = User.objects.get(username="loc123")
         self.assertIsNotNone(user)
@@ -344,7 +346,7 @@ class CategoryApiTests(APITestCase):
 
 
 # Test for cart view
-TAX = env('TAX')  # Decimal value used by MenuItemSerializer
+TAX = float(env('TAX'))  # Decimal value used by MenuItemSerializer
 
 
 def _dec(value):
@@ -416,8 +418,8 @@ class CartViewTests(APITestCase):
         expected_u_total = _dec(self.menu1.price) * _dec(self.item_user.quantity)
         expected_o_total = _dec(self.menu2.price) * _dec(self.item_other.quantity)
 
-        expected_u_after = expected_u_total * _dec(TAX)
-        expected_o_after = expected_o_total * _dec(TAX)
+        expected_u_after = expected_u_total * _dec(1+TAX)
+        expected_o_after = expected_o_total * _dec(1+TAX)
 
         assert _dec(u["total_price"]) == expected_u_total
         assert _dec(o["total_price"]) == expected_o_total
@@ -438,7 +440,7 @@ class CartViewTests(APITestCase):
 
         item = data[0]
         expected_total = _dec(self.menu1.price) * _dec(self.item_user.quantity)
-        expected_after = expected_total * _dec(TAX)
+        expected_after = expected_total * _dec(1+TAX)
 
         assert _dec(item["total_price"]) == expected_total
         assert _dec(item["total_price_after_tax"]) == expected_after
@@ -462,7 +464,7 @@ class CartViewTests(APITestCase):
 
             # totals in response
             assert _dec(data["total_price"]) == _dec(self.menu2.price) * _dec(3)
-            assert _dec(data["total_price_after_tax"]) == _dec(self.menu2.price) * _dec(3) * _dec(TAX)
+            assert _dec(data["total_price_after_tax"]) == _dec(self.menu2.price) * _dec(3) * _dec(1+TAX)
 
     def test_create_duplicate_menuitem_for_same_user_fails(self):
         self.client.force_authenticate(self.user)
@@ -486,7 +488,7 @@ class CartViewTests(APITestCase):
         assert self.item_user.quantity == 5
 
         expected_total = _dec(self.menu1.price) * _dec(5)
-        expected_after = expected_total * _dec(TAX)
+        expected_after = expected_total * _dec(1+TAX)
 
         assert _dec(data["total_price"]) == expected_total
         assert _dec(data["total_price_after_tax"]) == expected_after

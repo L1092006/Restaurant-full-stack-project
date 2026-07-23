@@ -6,7 +6,7 @@ from django.utils.text import slugify
 from .models import *
 import environ
 from pathlib import Path
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 
 
