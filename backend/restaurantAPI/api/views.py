@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework import mixins
 from rest_framework.response import Response
@@ -257,17 +258,20 @@ class OrderView(mixins.ListModelMixin,
         order_data['status'] = 'processing'
         seri_order = OrderSerializer(data=order_data, context={'request': request})
         seri_order.is_valid(raise_exception=True)
-        order = seri_order.save()
+        try:
+            with transaction.atomic:
+                order = seri_order.save()
+                # Create orderitems 
+                order_items = []
+                for c in cartitems:
+                    order_item = OrderItem(order=order, menuitem=c.menuitem, quantity=c.quantity)
+                    order_items.append(order_item)
+                OrderItem.objects.bulk_create(order_items)
 
-        # Create orderitems 
-        order_items = []
-        for c in cartitems:
-            order_item = OrderItem(order=order, menuitem=c.menuitem, quantity=c.quantity)
-            order_items.append(order_item)
-        OrderItem.objects.bulk_create(order_items)
-
-        # Delete cartitems
-        cartitems.delete()
+                # Delete cartitems
+                cartitems.delete()
+        except Exception as e:
+            return Response({"error": "Server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(seri_order.data, status=status.HTTP_201_CREATED)
     
     def partial_update(self, request, pk=None):

@@ -141,14 +141,6 @@ cd backend/restaurantAPI
 python manage.py test
 ```
 
-## Known Limitations / Roadmap
-
-- Order creation is not yet wrapped in a database transaction — a partial failure between creating order items and clearing the cart could leave inconsistent state.
-- No CI pipeline currently runs the test suite automatically.
-- No automated tests yet for the frontend or the chatbot agent.
-- No OpenAPI/Swagger documentation generated for the REST API.
-- Chatbot tool-call concurrency is currently managed with a simple instance flag rather than a more robust queue.
-
 ## License
 
 No license specified yet.
