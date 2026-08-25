@@ -14,7 +14,7 @@ export default function About() {
     const { mainSize } = useOutletContext();
 
     return (
-        <Box  fontFamily={style.fontFamily} color={style.color} minH={mainSize} fontFamily={style.fontFamily}>
+        <Box  fontFamily={style.fontFamily} color={style.color} minH={mainSize}>
             <VStack mx="2vw" w="80vw" alignItems="flex-start">
                 <Heading mt="2vh" fontSize="3rem" fontFamily={style.fontFamily}>About us:</Heading>
                 <Text ml="5vw" mt="3vh" fontSize={style.fontSize}>{"This is a website for a restaurant."}</Text>

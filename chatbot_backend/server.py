@@ -6,8 +6,12 @@ import uuid
 from pathlib import Path
 import sqlite3
 from chatbot import Chatbot
+from dotenv import load_dotenv
+import os
 
-DEBUG = True
+load_dotenv()
+DEBUG = os.getenv("DEBUG") == "True"
+CLOUD = os.getenv("CLOUD") == "True"
 db_name = "users.db"
 
 """
@@ -136,8 +140,8 @@ async def handler(websocket):
             "supported_urls": [],
             "additional_info": "None"
         }
-    
-        chatbot = Chatbot(websocket, cloud=True, backend=backend, client=client, DEBUG=DEBUG)
+
+        chatbot = Chatbot(websocket, cloud=CLOUD, backend=backend, client=client, DEBUG=DEBUG)
         await chatbot.compile()
         while True:
             message = await recv()

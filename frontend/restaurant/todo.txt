@@ -1,3 +1,1 @@
-- Fix cannot signup - DONE 06/28
-- Fix cannot additem for admin - THIS IS INTENTIONAL
 - FIX disable checkout by link when the there's not enough in stock
