@@ -1,3 +1,5 @@
 .env
+.env_template_for_deploy
 doc.txt
 scripts.py
+__pycache__

@@ -27,11 +27,15 @@ env.read_env(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# FIXME: SECURITY WARNING: don't run with debug turned on in production!
 # PRODUCTION
-DEBUG = True
+DEBUG = env('STAGE') != 'PROD'
 
-ALLOWED_HOSTS = []
+# FIXME: replace '*' with the actual domain name in production
+if env('STAGE') == 'PROD':
+    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+else:
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -131,6 +135,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
 
 
 REST_FRAMEWORK = {
@@ -164,6 +169,10 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-CORS_ALLOWED_ORIGINS = env.list("ALLOWED_ORIGINS")
+# FIXME: Add the actual origins from env in production
+if env('STAGE') == 'PROD':
+    CORS_ALLOWED_ORIGINS = env.list("ALLOWED_ORIGINS")
+else:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
