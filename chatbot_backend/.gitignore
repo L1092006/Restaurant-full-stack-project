@@ -8,3 +8,5 @@ users.db
 test_users.db
 init.sql
 update.sql
+env/
+__pycache__/
