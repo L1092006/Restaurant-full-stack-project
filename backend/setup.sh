@@ -21,14 +21,33 @@ source env/bin/activate
 pip3 install -r requirements.txt
 cd restaurantAPI
 
+# Init the .env file
+echo "# Database configurations
+DB_NAME=$db_name
+DB_USER=$db_user
+DB_PASSWORD=$db_password
+DB_HOST=$db_host
+DB_PORT=$db_port
+
+SECRET_KEY='$secret_key'
+
+
+# Allowed host and origins
+ALLOWED_ORIGINS=$allowed_origins
+
+
+
+# BUSINESS CUSTOMIZATION
+TAX=$tax" > ./restaurantAPI/.env
+
 # migrate database
 python3 manage.py makemigrations
 python3 manage.py migrate
 
 # Create a superuser
-export DJANGO_SUPERUSER_USERNAME=admin_username
-export DJANGO_SUPERUSER_EMAIL=admin_username@example.com
-export DJANGO_SUPERUSER_PASSWORD=admin_password
+export DJANGO_SUPERUSER_USERNAME=$admin_username
+export DJANGO_SUPERUSER_EMAIL=$admin_username@example.com
+export DJANGO_SUPERUSER_PASSWORD=$admin_password
 python3 manage.py shell -c "
 from django.contrib.auth import get_user_model
 import os
@@ -42,32 +61,14 @@ if not U.objects.filter(username=os.environ['DJANGO_SUPERUSER_USERNAME']).exists
     )
 "
 
-# Init the .env file
-echo "# Database configurations
-DB_NAME=$db_name
-DB_USER=$db_user
-DB_PASSWORD=$db_password
-DB_HOST=$db_host
-DB_PORT=$db_port
-
-SECRET_KEY=\'$secret_key\'
-
-
-# Allowed host and origins
-ALLOWED_ORIGINS=$allowed_origins
 
 
 
-# BUSINESS CUSTOMIZATION
-TAX=$tax" > ./restaurantAPI/.env
-
-# Run the server
-gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
 
 # Set gunicorn to run on startup (for Linux systems)
 # Create a systemd service file for gunicorn. The service name is restaurantAPI.service
-echo "[Unit]
-Description=Gunicorn for myproject
+sudo echo "[Unit]
+Description=Gunicorn for restaurantAPI
 After=network.target
 
 [Service]
@@ -76,8 +77,8 @@ User=www-data
 Group=www-data
 WorkingDirectory=/srv/Restaurant-full-stack-project/backend/restaurantAPI
 EnvironmentFile=/srv/Restaurant-full-stack-project/backend/restaurantAPI/restaurantAPI/.env
-ExecStart=/srv/Restaurant-full-stack-project/backend/restaurantAPI/env/bin/gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
-ExecReload=/bin/kill -s HUP $MAINPID
+ExecStart=/srv/Restaurant-full-stack-project/backend/env/bin/gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
+ExecReload=/bin/kill -s HUP \$MAINPID
 Restart=always
 RestartSec=3
 KillMode=mixed
