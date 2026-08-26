@@ -85,11 +85,6 @@ class LoginView(APIView):
 
 class RefreshView(APIView):
     def post(self, request):
-
-        # Check if request come from an allowed origin. Allow if there's no Origin header
-        origin = request.headers.get("Origin")
-        if origin and not origin in ALLOWED_ORIGINS and not '*' in ALLOWED_ORIGINS:
-            return Response({"message": "Error: Forbidden origin"}, status=status.HTTP_403_FORBIDDEN)
        
         refresh_str = request.COOKIES.get(REFRESH_COOKIE["name"])
         if not refresh_str:
