@@ -37,7 +37,8 @@ SECRET_KEY='$secret_key'
 # Allowed host and origins
 ALLOWED_ORIGINS=$allowed_origins
 
-
+# Possible values: DEV, PRE_PROD, PROD
+STAGE=PRE_PROD
 
 # BUSINESS CUSTOMIZATION
 TAX=$tax" > .env
