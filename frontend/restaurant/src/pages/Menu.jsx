@@ -92,7 +92,7 @@ export default function Menu() {
         return <Text color={tabStyle.color} fontFamily={tabStyle.fontFamily}>Loading</Text>
     }
 
-    return categories && (
+    return (
         <Tabs.Root defaultValue={categories.length > 0 ? categories[0].id : undefined} fitted minH={mainSize} colorPalette="green" fontFamily={tabStyle.fontFamily} color={tabStyle.color}>
             <Tabs.List bg="gray.300" >
                 {categories && categories.map(cat => {
@@ -102,11 +102,11 @@ export default function Menu() {
                 })}
             </Tabs.List>
 
-            {categories && categories.map(cat => {
+            {categories.map(cat => {
                 return (
                     <Tabs.Content value={cat.id} key={cat.id} >
                         <Grid templateColumns="repeat(auto-fit, 20rem)"  justifyContent="center" gap="2rem" px="4vw" pt="1rem" pb="2rem">
-                            {itemsInCat && itemsInCat.get(cat.id) && itemsInCat.get(cat.id).filter(item => item.stock > 0).map(item => (
+                            {itemsInCat.get(cat.id) && itemsInCat.get(cat.id).filter(item => item.stock > 0).map(item => (
                                 <Link to={`/menu/${item.id}`} key={item.id}>
                                     <Card.Root  color={tabStyle.color} colorPalette="white" _hover={{shadow: "lg"}}> 
                                         <Image src={item.path ? item.path : placeholder} aspectRatio={6/4}/>
@@ -123,7 +123,7 @@ export default function Menu() {
                                                 <IoMdAdd/>
                                                 </IconButton>
                                             </HStack>
-                                            {itemsInCat && (item.stock < 5) ? <Text color="red.500">Warning: Low stock. Only {item.stock} items in stock.</Text> : ''}
+                                            {(item.stock < 5) ? <Text color="red.500">Warning: Low stock. Only {item.stock} items in stock.</Text> : ''}
                                         </Card.Body>
                                     </Card.Root>
                                 </Link>
