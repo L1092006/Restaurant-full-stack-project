@@ -3,3 +3,5 @@
 doc.txt
 scripts.py
 __pycache__
+api/__pycache__
+restaurantAPI/__pycache__
