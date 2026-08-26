@@ -16,20 +16,20 @@ allowed_origins=$9
 tax=0.1
 
 # Init django
-python -m venv env
+python3 -m venv env
 source env/bin/activate
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 cd restaurantAPI
 
 # migrate database
-python manage.py makemigrations
-python manage.py migrate
+python3 manage.py makemigrations
+python3 manage.py migrate
 
 # Create a superuser
 export DJANGO_SUPERUSER_USERNAME=admin_username
 export DJANGO_SUPERUSER_EMAIL=admin_username@example.com
 export DJANGO_SUPERUSER_PASSWORD=admin_password
-python manage.py shell -c "
+python3 manage.py shell -c "
 from django.contrib.auth import get_user_model
 import os
 U = get_user_model()
