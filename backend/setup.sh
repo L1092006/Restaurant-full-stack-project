@@ -40,7 +40,7 @@ ALLOWED_ORIGINS=$allowed_origins
 
 
 # BUSINESS CUSTOMIZATION
-TAX=$tax" > ./restaurantAPI/.env
+TAX=$tax" > .env
 
 # migrate database
 python3 manage.py makemigrations
