@@ -12,7 +12,10 @@ worker_class = "gthread"
 threads = 4
 timeout = 60
 graceful_timeout = 30
-keepalive = 5          # bump to 75 behind an ALB (its idle timeout is 60)
+if STAGE == "PROD":
+    keepalive = 75          # bump to 75 behind an ALB (its idle timeout is 60)
+else:
+    keepalive = 5          # bump to 75 behind an ALB (its idle timeout is 60)
 max_requests = 1000    # recycle workers to blunt slow memory leaks
 max_requests_jitter = 50
 accesslog = "-"        # stdout, so journald captures it
