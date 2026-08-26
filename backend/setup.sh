@@ -16,13 +16,15 @@ allowed_origins=$9
 tax=0.1
 
 # Init django
+sudo apt update
+sudo apt install python3-venv -y
 python3 -m venv env
 source env/bin/activate
 pip3 install -r requirements.txt
 cd restaurantAPI
 
 # Init the .env file
-echo "# Database configurations
+sudo echo "# Database configurations
 DB_NAME=$db_name
 DB_USER=$db_user
 DB_PASSWORD=$db_password
