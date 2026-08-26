@@ -10,7 +10,7 @@ db_user=$4
 db_password=$5
 db_host=$6
 db_port=$7
-secret_key=$8
+secret_key="$8"
 allowed_origins=$9
 
 tax=0.1
