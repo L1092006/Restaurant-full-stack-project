@@ -2,6 +2,6 @@
 .env_template_for_deploy
 doc.txt
 scripts.py
-__pycache__
-api/__pycache__
-restaurantAPI/__pycache__
+__pycache__/
+api/__pycache__/
+restaurantAPI/__pycache__/
