@@ -66,7 +66,7 @@ User=chatbot
 WorkingDirectory=/srv/Restaurant-full-stack-project/chatbot_backend
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/srv/Restaurant-full-stack-project/chatbot_backend/.env
-ExecStart=/srv/Restaurant-full-stack-project/chatbot_backend/venv/bin/python server.py
+ExecStart=/srv/Restaurant-full-stack-project/chatbot_backend/env/bin/python server.py
 Restart=always
 RestartSec=3
 
