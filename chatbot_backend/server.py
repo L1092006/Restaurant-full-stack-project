@@ -5,14 +5,21 @@ import json
 import uuid
 from pathlib import Path
 import sqlite3
+import pymysql
 from chatbot import Chatbot
 from dotenv import load_dotenv
 import os
 
+
 load_dotenv()
 DEBUG = os.getenv("DEBUG") == "True"
 CLOUD = os.getenv("CLOUD") == "True"
-db_name = "users.db"
+DB_NAME=os.getenv("DB_NAME")
+DB_USER=os.getenv("DB_USER")
+DB_PASSWORD=os.getenv("DB_PASSWORD")
+DB_HOST=os.getenv("DB_HOST")
+DB_PORT=int(os.getenv("DB_PORT", 3306))
+
 
 """
 A MESSAGE SENT BY THE CLIENT IS A JSON STRING WITH THE SCHEMA:
@@ -20,6 +27,7 @@ A MESSAGE SENT BY THE CLIENT IS A JSON STRING WITH THE SCHEMA:
     "type": "status_update | chat_message | tool_result",
     "content": "The content corresponding to each type"
 }
+
 
 For type status_update, the content value is a dict that can have any of the below key-value pairs:
 {
@@ -32,11 +40,13 @@ For type status_update, the content value is a dict that can have any of the bel
     paths_schema: a json describing all the paths available in the frontend
 }
 
+
 For type chat_message, the content value is:
 {
     "message": "str",
     "web_state": "like above"
 }
+
 
 For type tool_result, the content value is:
 {
@@ -46,10 +56,13 @@ For type tool_result, the content value is:
 }
 
 
+
+
 A MESSAGE SENT BY THIS SEVER IS A JSON STRING WITH THE SCHEMA:
 {
     "type": "chat_message | tool_call",
     "content": "The content corresponding to each type"
+
 
 For chat_message, content is a string
 For tool_call, content is:
@@ -61,7 +74,11 @@ For tool_call, content is:
 
 
 
+
+
+
 types = ["status_update", "chat_message", "tool_result"]
+
 
 async def handler(websocket):
     # Helper functions
@@ -69,6 +86,7 @@ async def handler(websocket):
     async def recv():
         message = await websocket.recv()
         print(message)
+
 
         try:
             data = json.loads(message)
@@ -80,19 +98,19 @@ async def handler(websocket):
                 username = content["username"]
             elif data["type"] == types[1]:
                 content_message = content["message"]
-            
+           
             # web_state is in all types of messages
             web_state = content["web_state"]
             web_name = web_state["web_name"]
             current_url = web_state["current_url"]
             print("Here")
             return data
-            
+           
         except Exception as e:
             print("Close", e)
             await websocket.close(code=1008, reason=f"Incorrect message format. Server raised exception {e}")
             raise e
-        
+       
     chatbot = None
     # Start the main loop
     try:
@@ -105,18 +123,20 @@ async def handler(websocket):
         # Info about the client
         client = data["content"]
 
+
         # Helper: get the user_profile and last_conversation from user id from web backend
         def get_userinfo(user_id):
-            conn = sqlite3.connect(db_name)
+            conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, port=int(DB_PORT))
             cursor = conn.cursor()
-            res = cursor.execute("""SELECT "id", "user_profile", "last_conversation" FROM "users" WHERE "backend_id" = ?;""", (user_id,))
-            res_tup = res.fetchall()
+            cursor.execute("SELECT id, user_profile, last_conversation FROM users WHERE backend_id = %s", (user_id,))
+            res_tup = cursor.fetchall()
             # If there's no user like that, insert a new user:
             if len(res_tup) == 0:
-                cursor.executemany('INSERT INTO users ("backend_id", "user_profile", "last_conversation") VALUES(?, ?, ?)', [(user_id, "First time user", "None")])
-                res_tup = [(None, "First time user", "None")]
+                cursor.execute('INSERT INTO users (`backend_id`, `user_profile`, `last_conversation`) VALUES(%s, %s, %s)', (user_id, "First time user", "None"))
+                res_tup = [(cursor.lastrowid, "First time user", "None")]
                 conn.commit()
             cursor.close()
+            conn.close()
             return {
                 "id": res_tup[0][0],
                 "user_profile": res_tup[0][1],
@@ -134,6 +154,7 @@ async def handler(websocket):
             client["user_profile"] = data["user_profile"]
             client["last_conversation"] = data["last_conversation"]
 
+
         # Get the backend info
         # FIXME: send the request to backend to get info
         backend = {
@@ -141,12 +162,13 @@ async def handler(websocket):
             "additional_info": "None"
         }
 
+
         chatbot = Chatbot(websocket, cloud=CLOUD, backend=backend, client=client, DEBUG=DEBUG)
         await chatbot.compile()
         while True:
             message = await recv()
             print("here2")
-            
+           
             content = message["content"]
             # Always update web_state
             chatbot.client["web_state"] = content["web_state"]
@@ -174,50 +196,65 @@ async def handler(websocket):
         raise Exception(f"Server error. Server raised exception {e}")
     # Update the user info
     finally:
-        if chatbot:
+        # If the user is not anonymous, update the user profile and last conversation in the database
+        if chatbot and not data["user_id"].startswith("anonymous-"):
             data = chatbot.get_summary_and_messages()
-            conn = sqlite3.connect(db_name)
+            conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, port=int(DB_PORT))
             cursor = conn.cursor()
             # Update the profile and last conversation
             cursor.execute("""
-            UPDATE "users"
-            SET "user_profile" = ?, "last_conversation" = ?
-            WHERE "backend_id" = ?
-            """, (data["user_profile"], data["summary"], data["user_id"],))
+            UPDATE `users`
+            SET `user_profile` = %s, `last_conversation` = %s
+            WHERE `backend_id` = %s
+            """, (data["user_profile"], data["summary"], data["user_id"]))
+            conn.commit()
+
 
             # Insert the new messages
             userinfo = get_userinfo(data["user_id"])
             new_messages = [(userinfo["id"], m) for m in data["messages"]]
-            cursor.executemany('INSERT INTO user_messages("user_id", "content") VALUES(?, ?)', new_messages)
+            cursor.executemany('INSERT INTO user_messages(`user_id`, `content`) VALUES(%s, %s)', new_messages)
             conn.commit()
+            cursor.close()
             conn.close()
+
 
 async def main():
 
+
     # Init the db if not exist
-    if not Path("users.db").exists():
-        conn = sqlite3.connect(db_name)
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE users (
-                "id" INTEGER PRIMARY KEY,
-                "backend_id" TEXT NOT NULL UNIQUE,
-                "user_profile" TEXT,
-                "last_conversation"
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE user_messages (
-                "id" INTEGER PRIMARY KEY,
-                "user_id" INTEGER,
-                "content" TEXT,
-                FOREIGN KEY("user_id") REFERENCES "users"("id")
-            );""")
-        conn.commit()
-        conn.close()
+    try:
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, port=int(DB_PORT))
+    except pymysql.err.OperationalError as e:
+        if e.args[0] != 1049:
+            raise
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, port=int(DB_PORT))
+        with conn.cursor() as cur:
+            cur.execute(f"CREATE DATABASE {DB_NAME} CHARACTER SET utf8mb4")
+        conn.select_db(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id                INT AUTO_INCREMENT PRIMARY KEY,
+            backend_id        VARCHAR(255) NOT NULL UNIQUE,
+            user_profile      TEXT,
+            last_conversation TEXT
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_messages (
+            id      INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            content TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    conn.commit()
+    conn.close()
     async with serve(handler, "", 8001) as server:
         await server.serve_forever()
-    
+   
+
 
 if __name__ == "__main__":
     asyncio.run(main())
