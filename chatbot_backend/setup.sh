@@ -62,8 +62,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User=backend_admin
+Group=backend_admin
 WorkingDirectory=/srv/Restaurant-full-stack-project/chatbot_backend
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/srv/Restaurant-full-stack-project/chatbot_backend/.env

@@ -76,8 +76,8 @@ After=network.target
 
 [Service]
 Type=notify
-User=www-data
-Group=www-data
+User=backend_admin
+Group=backend_admin
 WorkingDirectory=/srv/Restaurant-full-stack-project/backend/restaurantAPI
 EnvironmentFile=/srv/Restaurant-full-stack-project/backend/restaurantAPI/.env
 ExecStart=/srv/Restaurant-full-stack-project/backend/env/bin/gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
