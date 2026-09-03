@@ -199,7 +199,7 @@ async def handler(websocket):
         # If the user is not anonymous, update the user profile and last conversation in the database
         if chatbot:
             data = chatbot.get_summary_and_messages()
-            if not data["user_id"].startswith("anonymous-"): 
+            if not str(data["user_id"]).startswith("anonymous-"): 
                 conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, port=int(DB_PORT))
                 cursor = conn.cursor()
                 # Update the profile and last conversation
