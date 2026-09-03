@@ -197,26 +197,27 @@ async def handler(websocket):
     # Update the user info
     finally:
         # If the user is not anonymous, update the user profile and last conversation in the database
-        if chatbot and not data["user_id"].startswith("anonymous-"):
+        if chatbot:
             data = chatbot.get_summary_and_messages()
-            conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, port=int(DB_PORT))
-            cursor = conn.cursor()
-            # Update the profile and last conversation
-            cursor.execute("""
-            UPDATE `users`
-            SET `user_profile` = %s, `last_conversation` = %s
-            WHERE `backend_id` = %s
-            """, (data["user_profile"], data["summary"], data["user_id"]))
-            conn.commit()
+            if not data["user_id"].startswith("anonymous-"): 
+                conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, port=int(DB_PORT))
+                cursor = conn.cursor()
+                # Update the profile and last conversation
+                cursor.execute("""
+                UPDATE `users`
+                SET `user_profile` = %s, `last_conversation` = %s
+                WHERE `backend_id` = %s
+                """, (data["user_profile"], data["summary"], data["user_id"]))
+                conn.commit()
 
 
-            # Insert the new messages
-            userinfo = get_userinfo(data["user_id"])
-            new_messages = [(userinfo["id"], m) for m in data["messages"]]
-            cursor.executemany('INSERT INTO user_messages(`user_id`, `content`) VALUES(%s, %s)', new_messages)
-            conn.commit()
-            cursor.close()
-            conn.close()
+                # Insert the new messages
+                userinfo = get_userinfo(data["user_id"])
+                new_messages = [(userinfo["id"], m) for m in data["messages"]]
+                cursor.executemany('INSERT INTO user_messages(`user_id`, `content`) VALUES(%s, %s)', new_messages)
+                conn.commit()
+                cursor.close()
+                conn.close()
 
 
 async def main():
