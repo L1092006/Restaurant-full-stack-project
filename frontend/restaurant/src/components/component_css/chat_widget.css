@@ -2,6 +2,14 @@
   background-color: rgb(7, 80, 7);
 }
 
+.rcw-conversation-container .rcw-close-button {
+    background: rgb(7, 80, 7);
+}
+
+.rcw-close-button {
+    margin-right: 90%;
+}
+
 
 .rcw-client .rcw-message-text {
     background-color: #f4f7f9;
