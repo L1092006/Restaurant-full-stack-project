@@ -254,7 +254,7 @@ class OrderView(mixins.ListModelMixin,
         seri_order = OrderSerializer(data=order_data, context={'request': request})
         seri_order.is_valid(raise_exception=True)
         try:
-            with transaction.atomic:
+            with transaction.atomic():
                 order = seri_order.save()
                 # Create orderitems 
                 order_items = []
