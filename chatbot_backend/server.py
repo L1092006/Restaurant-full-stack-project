@@ -1,6 +1,7 @@
 import asyncio
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosedOK
+from http import HTTPStatus
 import json
 import uuid
 from pathlib import Path
@@ -78,6 +79,13 @@ For tool_call, content is:
 
 
 types = ["status_update", "chat_message", "tool_result"]
+
+# For ALB, create a path for health check, return 200
+def health_check(connection, request):
+    if request.path == "/health":
+        return connection.respond(HTTPStatus.OK, "ok\n")
+    return None
+
 
 
 async def handler(websocket):
@@ -252,7 +260,7 @@ async def main():
     """)
     conn.commit()
     conn.close()
-    async with serve(handler, "", 8001) as server:
+    async with serve(handler, "", 8001, process_request=health_check) as server:
         await server.serve_forever()
    
 
