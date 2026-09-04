@@ -23,21 +23,15 @@ export default function ChatWidget() {
         }
     }, [chatMessages]);
 
-    if (!socket || !ready)
-    {
-        return null;
-    }
-    else {
-        return (
-            <Widget
-            handleNewUserMessage={handleNewUserMessage}
-            profileAvatar={placeholder}
-            title="Your assistant Vbot"
-            subtitle="Welcome!"
-            resizable={true}
-            showCloseButton={true}
-            />
-        )
-    }
+    return (
+        <Widget
+        handleNewUserMessage={handleNewUserMessage}
+        profileAvatar={placeholder}
+        title="Your assistant Vbot"
+        subtitle="Welcome!"
+        resizable={true}
+        showCloseButton={true}
+        />
+    )
         
 }
