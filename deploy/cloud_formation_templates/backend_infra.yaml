@@ -319,10 +319,10 @@ Resources:
             sudo -u backend_admin git checkout deploy_aws
             cd backend/
             chmod 774 setup.sh
-            ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} {DBName} ${DBUsername} {DBPassword} ${RDSInstance.Endpoint.Address} 3306 "${DjangoKey}" '*'
+            ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} ${DBName} ${DBUsername} ${DBPassword} ${RDSInstance.Endpoint.Address} 3306 "${DjangoKey}" '*'
             cd ../chatbot_backend
             chmod 774 setup.sh
-            ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} {DBName} ${DBUsername} {DBPassword} ${RDSInstance.Endpoint.Address} 3306 ${OpenRouterKey} ${PineconeKey}
+            ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} ${DBName} ${DBUsername} ${DBPassword} ${RDSInstance.Endpoint.Address} 3306 ${OpenRouterKey} ${PineconeKey}
 
   # ── Application Load Balancer ─────────────────────────────────────────────
   ApplicationLoadBalancer:
