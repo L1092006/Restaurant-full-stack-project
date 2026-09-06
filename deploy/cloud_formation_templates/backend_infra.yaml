@@ -3,6 +3,15 @@ Description: >
   Restaurant App - Application Stack
   Deploys S3, CloudFront, Security Groups, RDS MySQL, EC2 Launch Template,
   Auto Scaling Group, and Application Load Balancer.
+  To create the stack, an account must have these and pass them as paramters:
+  - An keypair to ssh to an EC2 instance.
+  - An instance profile with the policy to connect to SSM
+  - A name which has not been used for any bucket to be used for the web hosting bucket
+  - A domain that has not be used
+  - A ACM certificate for the above domain
+  Other than above, the user must also pass DB passwords, openrouter and pinecone API keys, django admin username and password, django secret key
+  Warning: Not for production, the credentials will be passed into the user data to initialize the EC2 instances.
+
 
 Parameters:
   ProjectName:
@@ -34,14 +43,14 @@ Parameters:
   KeyPairName:
     Type: String
     Default: n-key-restaurant
-    Description: EC2 Key Pair name
+    Description: EC2 Key Pair name. Unused yet
   IAMInstanceProfile:
     Type: String
     Default: n-role-ec2-with-ssm
-    Description: IAM Instance Profile for EC2 (includes SSM access). Used for bastion host.
+    Description: IAM Instance Profile for EC2 (includes SSM access). 
   AmiId:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/canonical/ubuntu/server/26.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Type: String
+    Default: ami-04da0b783a48a24c3
   MinInstances:
     Type: Number
     Default: 1
@@ -58,7 +67,7 @@ Parameters:
   CertificateArn:
     Type: String
     Default: arn:aws:acm:us-east-1:542601846947:certificate/db6ba384-60af-42dc-9727-5cc5b22d4212
-    Description: "(Optional) ACM Certificate ARN for HTTPS on CloudFront"
+    Description: " ACM Certificate ARN for HTTPS on CloudFront"
   CloudFrontAlias:
     Type: String
     Default: restaurant.loc109.click
@@ -257,7 +266,7 @@ Resources:
 
   RDSInstance:
     Type: AWS::RDS::DBInstance
-    DeletionPolicy: Snapshot
+    DeletionPolicy: Delete
     Properties:
       DBInstanceIdentifier: !Sub "n-rds-mysql-${ProjectName}-${Environment}"
       DBName: !Ref DBName
@@ -290,6 +299,8 @@ Resources:
       LaunchTemplateData:
         ImageId: !Ref AmiId
         InstanceType: !Ref InstanceType
+        IamInstanceProfile:
+          Name: !Ref IAMInstanceProfile
         SecurityGroupIds:
           - !Ref EC2SecurityGroup
         TagSpecifications:
@@ -364,12 +375,19 @@ Resources:
   ChatbotTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub "n-tg-${ProjectName}-chatbot-server"
+      Name: !Sub "n-tg-${ProjectName}-chatbot"
       Port: 8001
       Protocol: HTTP
       VpcId: !ImportValue
         Fn::Sub: "${NetworkStackName}-VPCId"
       HealthCheckPath: /health
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: "true"
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: "3600"
       Tags:
         - Key: Project
           Value: !Ref ProjectName
@@ -392,6 +410,7 @@ Resources:
               - TargetGroupArn: !Ref WebTargetGroup
             TargetGroupStickinessConfig:
               Enabled: true
+              DurationSeconds: 3600
  
   # HTTP listener - redirect to HTTPS
   ALBHttpListener:
@@ -426,6 +445,7 @@ Resources:
               - TargetGroupArn: !Ref WebTargetGroup
             TargetGroupStickinessConfig:
               Enabled: true
+              DurationSeconds: 3600
 
   # Rule 2 (Priority 2): /chat and /chat/* → ChatbotTargetGroup (with URL rewrite / → /)
   ALBListenerRuleChat:
@@ -446,10 +466,12 @@ Resources:
               - TargetGroupArn: !Ref ChatbotTargetGroup
             TargetGroupStickinessConfig:
               Enabled: true
+              DurationSeconds: 3600
 
   # ── Auto Scaling Group ────────────────────────────────────────────────────
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: RDSInstance
     Properties:
       AutoScalingGroupName: !Sub "n-asg-${ProjectName}-${Environment}"
       MinSize: !Ref MinInstances
