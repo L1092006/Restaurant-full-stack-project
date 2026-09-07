@@ -1,5 +1,9 @@
 #! /bin/bash
 
+# Cd to the templates directory
+FILE_LOCATION=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd $FILE_LOCATION/../cloud_formation_templates
+
 # Import env variables from .env file
 if [ -f .env ]; then
   . .env
@@ -7,7 +11,7 @@ fi
 
 echo "Deploying VPC stack"
 # VPC stack
-aws cloudformation deploy --template-file cloud_formation_templates/vpc_dev.yaml \
+aws cloudformation deploy --template-file vpc_dev.yaml \
   --stack-name $VPC_STACKNAME --region $VPC_REGION \
   --parameter-overrides ProjectName=$ProjectName
 
@@ -22,7 +26,7 @@ echo "VPC stack created successfully"
 echo "##############################################################################################################"
 echo "Deploying backend stack"
 #  App stack
-aws cloudformation deploy --template-file cloud_formation_templates/backend_infra.yaml \
+aws cloudformation deploy --template-file backend_infra.yaml \
   --stack-name $BACKEND_STACKNAME --region $BACKEND_REGION \
   --parameter-overrides ProjectName=$ProjectName NetworkStackName=$VPC_STACKNAME \
     DBPassword=$DBPassword BackendAdminUsername=$BackendAdminUsername BackendAdminPassword=$BackendAdminPassword \
