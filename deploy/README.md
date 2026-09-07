@@ -124,6 +124,7 @@ Then, from `deploy/`:
 . scripts/uploadS3.sh
 
 # 3. In Route 53, update records to point at the new ALB / CloudFront distribution
+# 4. In cloudfront, go to the new distribution and route it to the custom domain
 ```
 
 `deploy.sh` deploys `vpc_dev.yaml` first, waits for

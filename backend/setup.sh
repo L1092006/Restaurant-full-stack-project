@@ -66,7 +66,7 @@ if not U.objects.filter(username=os.environ['DJANGO_SUPERUSER_USERNAME']).exists
 
 
 # Initaliize the database with default data
-python3 manage.py shell < scripts.py
+# python3 manage.py shell < scripts.py
 
 
 # Set gunicorn to run on startup (for Linux systems)
