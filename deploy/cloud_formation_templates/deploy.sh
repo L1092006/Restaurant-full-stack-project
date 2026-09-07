@@ -27,7 +27,7 @@ aws cloudformation deploy --template-file cloud_formation_templates/backend_infr
   --parameter-overrides ProjectName=$ProjectName NetworkStackName=$VPC_STACKNAME \
     DBPassword=$DBPassword BackendAdminUsername=$BackendAdminUsername BackendAdminPassword=$BackendAdminPassword \
     DjangoKey=$DjangoKey PineconeKey=$PineconeKey OpenRouterKey=$OpenRouterKey S3BucketName=$S3BucketName \
-    CloudALias=$CloudALias KeyPairName=$KeyPairName IAMInstanceProfile=$IAMInstanceProfile
+    CloudAlias=$CloudAlias KeyPairName=$KeyPairName IAMInstanceProfile=$IAMInstanceProfile
 
 echo "Wait for the backend stack to be created"
 aws cloudformation wait stack-create-complete --stack-name $BACKEND_STACKNAME --region $BACKEND_REGION

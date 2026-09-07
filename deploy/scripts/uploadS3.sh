@@ -5,7 +5,8 @@ if [ -f .env ]; then
   . .env
 fi
 
-cd ../../frontend/restaurant/
+FILE_LOCATION=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd $FILE_LOCATION/../../frontend/restaurant/
 npm run build
 aws s3 sync dist/ s3://$S3BucketName --delete
 
