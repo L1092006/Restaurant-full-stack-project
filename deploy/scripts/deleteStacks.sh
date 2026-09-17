@@ -1,5 +1,9 @@
 #! /bin/bash
 
+if [ -f .env ]; then
+  . .env
+fi
+
 # Empty the S3 bucket
 aws s3 rm s3://$S3BucketName --recursive
 

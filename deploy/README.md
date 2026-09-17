@@ -154,19 +154,3 @@ aws cloudformation deploy --template-file backend_infra.yaml \
 
 Then delete the Route 53 records that pointed at the CloudFront distribution / ALB.
 
-## Security notes
-
-These templates are for a demo/learning deployment, not production:
-
-- **Secrets are passed through EC2 `UserData`** to the setup scripts, and some
-  are passed **unquoted** — a secret containing a space will word-split and
-  corrupt the generated `.env`. Prefer AWS Secrets Manager / SSM Parameter Store
-  for real deployments.
-- `setup.sh` writes **`STAGE=PRE_PROD`**, so the Django app does not enable its
-  production hardening (env-driven `ALLOWED_HOSTS`/CORS, proxy SSL header,
-  gunicorn keepalive tuning) — those only activate at `STAGE=PROD`. Behind the
-  ALB, gunicorn's keepalive stays at 5s (below the ALB's 60s idle timeout).
-- `RDSInstance` uses `DeletionPolicy: Delete` (the database is destroyed on
-  stack deletion) and `MultiAZ: false`.
-- The frontend is **not** deployed by the stack; upload it separately with
-  `scripts/uploadS3.sh`.

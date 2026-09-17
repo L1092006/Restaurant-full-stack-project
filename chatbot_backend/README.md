@@ -121,11 +121,3 @@ routes the agent may navigate to.
 is handled as WebSocket connections on port `8001` (host and port are
 hardcoded).
 
-## Notes / legacy files
-
-- **`test_client.py` is stale** — it sends `type: "message"`, but the server
-  expects `chat_message`.
-- `init.sql` / `update.sql` and the committed `*.db` files describe an old
-  SQLite-based store; the live cross-session persistence is MySQL (tables are
-  created in `server.py`). `assistant.db` is a live LangGraph checkpoint file.
-- `chatbot.ipynb` is a scratch notebook used while developing the graph.

@@ -50,7 +50,7 @@ Parameters:
     Description: IAM Instance Profile for EC2 (includes SSM access). 
   AmiId:
     Type: String
-    Default: ami-04da0b783a48a24c3
+    Default: ami-0f8a61b66d1accaee
   MinInstances:
     Type: Number
     Default: 1
