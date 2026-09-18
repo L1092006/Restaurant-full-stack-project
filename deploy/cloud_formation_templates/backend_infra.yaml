@@ -78,15 +78,19 @@ Parameters:
   # Parameters for server setup scripts
   BackendAdminUsername:
     Type: String
+    NoEcho: true
   BackendAdminPassword:
     Type: String
+    NoEcho: true
   DjangoKey:
     Type: String
+    NoEcho: true
   PineconeKey:
     Type: String
+    NoEcho: true
   OpenRouterKey:
     Type: String
-  
+    NoEcho: true
 
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]

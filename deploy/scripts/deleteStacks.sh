@@ -1,5 +1,10 @@
 #! /bin/bash
 
+# Cd to the templates directory
+FILE_LOCATION=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd $FILE_LOCATION/../cloud_formation_templates
+
+
 if [ -f .env ]; then
   . .env
 fi

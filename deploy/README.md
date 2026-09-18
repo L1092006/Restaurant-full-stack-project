@@ -116,8 +116,11 @@ IAMInstanceProfile=<ec2 instance profile>
 Then, from `deploy/`:
 
 ```bash
-# 1. Deploy the VPC stack, wait, then the app stack (NetworkStackName = VPC stack name)
+# 1a. Deploy the VPC stack, wait, then the app stack (NetworkStackName = VPC stack name)
 . scripts/deploy.sh
+
+# 1b. Or to deploy the minimal version to demo run:
+. scripts/deploy_minimal.sh
 
 # 2. Point the frontend's VITE_BACKEND_URL / VITE_CHATBOT_URL at the new ALB,
 #    then build and upload the SPA and invalidate CloudFront
@@ -147,10 +150,11 @@ aws cloudformation deploy --template-file backend_infra.yaml \
 ```
 
 ## Tearing down
-
+Run one of the following two depending on what version we deployed
 ```bash
 . scripts/deleteStacks.sh    # empties the S3 bucket, deletes the app stack, then the VPC stack
+
+. scripts/delete_minimal.sh  # Delete the minimal stack
 ```
 
 Then delete the Route 53 records that pointed at the CloudFront distribution / ALB.
-
