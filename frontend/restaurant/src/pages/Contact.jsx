@@ -14,7 +14,7 @@ export default function Contact() {
     const { mainSize } = useOutletContext();
 
     return (
-        <Box  fontFamily={style.fontFamily} color={style.color} minH={mainSize} fontFamily={style.fontFamily}>
+        <Box  fontFamily={style.fontFamily} color={style.color} minH={mainSize}>
             <VStack mx="2vw" w="80vw" alignItems="flex-start">
                 <Heading mt="2vh" fontSize="3rem" fontFamily={style.fontFamily}>Contact us:</Heading>
                 <Text ml="5vw" mt="3vh" fontSize={style.fontSize}>{"Email: email@gmail.com"}</Text>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react';
+import { Box } from '@chakra-ui/react';
 import { useChatbot } from '../contexts/ChatbotContext';
 import { Widget, addResponseMessage } from '@ryaneewx/react-chat-widget';
 import "./component_css/chat_widget.css"
@@ -23,12 +24,8 @@ export default function ChatWidget() {
         }
     }, [chatMessages]);
 
-    if (!socket || !ready)
-    {
-        return null;
-    }
-    else {
-        return (
+    return (
+        <Box maxW="100vw" mr="10vw">
             <Widget
             handleNewUserMessage={handleNewUserMessage}
             profileAvatar={placeholder}
@@ -37,7 +34,8 @@ export default function ChatWidget() {
             resizable={true}
             showCloseButton={true}
             />
-        )
-    }
+        </Box>
+        
+    )
         
 }

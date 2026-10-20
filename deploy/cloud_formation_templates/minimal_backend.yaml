@@ -1,0 +1,481 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Restaurant App - Application Stack
+  Deploys S3, CloudFront, Security Groups, RDS MySQL and an EC2 instance in a public subnet in the default VPC
+  No custom VPC, ALB, ASG to minimize cost. Use for demo
+
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: restaurant-minimal
+  Environment:
+    Type: String
+    Default: dev
+  VPCId:
+    Type: String
+    Default: vpc-0c5964a0b3dafce57
+  Subnet1:
+    Type: String
+    Default: subnet-06d7bb6f884585ee5
+  Subnet2:
+    Type: String
+    Default: subnet-09f217ebba666ec66
+  DBUsername:
+    Type: String
+    Default: admin
+    NoEcho: true
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: RDS master password (min 8 chars)
+  DBName:
+    Type: String
+    Default: the_restaurant
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium, t3.large]
+  KeyPairName:
+    Type: String
+    Default: n-key-restaurant
+    Description: EC2 Key Pair name. Unused yet
+  IAMInstanceProfile:
+    Type: String
+    Default: n-role-ec2-with-ssm
+    Description: IAM Instance Profile for EC2 (includes SSM access). 
+  AmiId:
+    Type: String
+    Default: ami-0b6d9d3d33ba97d99
+  S3BucketName:
+    Type: String
+    Default: restaurant-front-cfn.loc109.click
+    Description: S3 bucket name for the frontend (must be globally unique)
+  CertificateArn:
+    Type: String
+    Default: arn:aws:acm:us-east-1:542601846947:certificate/db6ba384-60af-42dc-9727-5cc5b22d4212
+    Description: " ACM Certificate ARN for HTTPS on CloudFront"
+  CloudFrontAlias:
+    Type: String
+    Default: restaurant.loc109.click
+    Description: Custom domain alias for CloudFront
+  # Parameters for server setup scripts
+  BackendAdminUsername:
+    Type: String
+    NoEcho: true
+  BackendAdminPassword:
+    Type: String
+    NoEcho: true
+  DjangoKey:
+    Type: String
+    NoEcho: true
+  PineconeKey:
+    Type: String
+    NoEcho: true
+  OpenRouterKey:
+    Type: String
+    NoEcho: true
+  
+
+
+Resources:
+
+  # ── S3 Bucket (Frontend Static Assets) ───────────────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Ref S3BucketName
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${FrontendBucket}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+
+  # ── CloudFront OAC & Distribution ────────────────────────────────────────
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "n-cf-${ProjectName}-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "n-cf-${ProjectName}-s3"
+        Enabled: true
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref CloudFrontAlias
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+      Tags:
+        - Key: Name
+          Value: !Sub "n-cf-${ProjectName}-s3"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+# ── Security Groups ───────────────────────────────────────────────────────
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "n-sg-alb-${ProjectName}-${Environment}"
+      GroupDescription: Allow HTTP/HTTPS from internet to ALB
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: !Sub "n-sg-alb-${ProjectName}-${Environment}"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "n-sg-ec2-${ProjectName}-${Environment}-server"
+      GroupDescription: Allow all access on TCP 8000, 8001 from the internet
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 8001
+          ToPort: 8001
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "n-sg-ec2-${ProjectName}-${Environment}-server"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "n-sg-rds-${ProjectName}-${Environment}"
+      GroupDescription: Allow MySQL from EC2 only
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "n-sg-rds-${ProjectName}-${Environment}"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ── EC2 instance ─────────────────────────────────────────────────────────────
+  BackendInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !Ref IAMInstanceProfile
+      SubnetId: !Ref Subnet1            # any public subnet in the default VPC
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "n-ec2-${ProjectName}-${Environment}-server"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo -i
+          cd /srv
+          # Clone the repo, create a new user which becomes the owner of the repo
+          git clone https://github.com/L1092006/Restaurant-full-stack-project.git
+          # disabled login and provide no info
+          adduser --disabled-login --gecos "" backend_admin
+          # Change the ownership to the new user
+          chmod 774 Restaurant-full-stack-project
+          chown -R backend_admin Restaurant-full-stack-project
+
+          # Config web and chatbot backends
+          cd Restaurant-full-stack-project/
+          sudo -u backend_admin git checkout deploy_aws
+          cd backend/
+          chmod 774 setup.sh
+          ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} ${DBName} ${DBUsername} ${DBPassword} ${RDSInstance.Endpoint.Address} 3306 "${DjangoKey}" '*'
+          cd ../chatbot_backend
+          chmod 774 setup.sh
+          ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} ${DBName} ${DBUsername} ${DBPassword} ${RDSInstance.Endpoint.Address} 3306 ${OpenRouterKey} ${PineconeKey}
+
+  # ── Application Load Balancer ─────────────────────────────────────────────
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "n-alb-${ProjectName}-${Environment}"
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "n-alb-${ProjectName}-${Environment}"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  WebTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "n-tg-${ProjectName}-${Environment}-server"
+      Port: 8000
+      Protocol: HTTP
+      VpcId: !Ref VPCId
+      HealthCheckPath: /api/items/
+      Targets:
+        - Id: !Ref BackendInstance
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  ChatbotTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "n-tg-${ProjectName}-chatbot"
+      Port: 8001
+      Protocol: HTTP
+      VpcId: !Ref VPCId
+      HealthCheckPath: /health
+      Targets:
+        - Id: !Ref BackendInstance
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: "true"
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: "3600"
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref WebTargetGroup
+            TargetGroupStickinessConfig:
+              Enabled: true
+              DurationSeconds: 3600
+ 
+  # HTTP listener - redirect to HTTPS
+  ALBHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: "443"
+            StatusCode: HTTP_301
+  
+  # ── ALB Listener Rules ────────────────────────────────────────────────────
+  # Rule 1 (Priority 1): /api/* → WebTargetGroup
+  ALBListenerRuleApi:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/api/*"
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref WebTargetGroup
+            TargetGroupStickinessConfig:
+              Enabled: true
+              DurationSeconds: 3600
+
+  # Rule 2 (Priority 2): /chat and /chat/* → ChatbotTargetGroup (with URL rewrite / → /)
+  ALBListenerRuleChat:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 2
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/chat"
+              - "/chat/*"
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref ChatbotTargetGroup
+            TargetGroupStickinessConfig:
+              Enabled: true
+              DurationSeconds: 3600
+
+
+  # ── RDS MySQL ─────────────────────────────────────────────────────────────
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub "Subnet group for ${ProjectName} RDS"
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      DBInstanceIdentifier: !Sub "n-rds-mysql-${ProjectName}-${Environment}"
+      DBName: !Ref DBName
+      Engine: mysql
+      EngineVersion: "8.4.9"
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      StorageType: gp3
+      MultiAZ: false
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      BackupRetentionPeriod: 0 
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      Tags:
+        - Key: Name
+          Value: !Sub "n-rds-mysql-${ProjectName}-${Environment}"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+    
+
+# ── Outputs ───────────────────────────────────────────────────────────────
+Outputs:
+  CloudFrontURL:
+    Description: CloudFront Distribution URL (custom domain)
+    Value: !Sub "https://${CloudFrontAlias}"
+
+  CloudFrontDomain:
+    Description: CloudFront Distribution default domain
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"
+  
+  CloudFrontID:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+
+  RDSEndpoint:
+    Description: RDS MySQL Endpoint
+    Value: !GetAtt RDSInstance.Endpoint.Address
+
+  S3BucketName:
+    Description: Frontend S3 Bucket
+    Value: !Ref FrontendBucket
+
+  BackendPublicIP:
+    Description: Public IP of the backend EC2 instance
+    Value: !GetAtt BackendInstance.PublicIp
+
+  BackendPublicDNS:
+    Description: Public DNS of the backend EC2 instance
+    Value: !GetAtt BackendInstance.PublicDnsName
