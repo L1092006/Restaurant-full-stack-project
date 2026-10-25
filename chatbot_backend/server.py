@@ -258,6 +258,7 @@ async def main():
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
+    cursor.close()
     conn.commit()
     conn.close()
     async with serve(handler, "", 8001, process_request=health_check) as server:

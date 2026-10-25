@@ -89,6 +89,8 @@ Restaurant-full-stack-project/
 - (Optional, for the chatbot) Pinecone API key and an OpenRouter/OpenAI API key, or a local Ollama model
 
 ### Backend setup
+Install and create a MySQL server with an database
+Create the .env file in backend/restaurantAPI/
 ```bash
 # NOTE: requirements.txt lives in backend/, but manage.py lives in backend/restaurantAPI/
 cd backend
