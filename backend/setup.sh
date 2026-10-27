@@ -18,9 +18,9 @@ tax=0.1
 # Init django
 # sudo apt update
 # sudo apt install python3-venv -y
-python3 -m venv env
+# python3 -m venv env
 source env/bin/activate
-pip3 install -r requirements.txt
+# pip3 install -r requirements.txt
 cd restaurantAPI
 
 # Init the .env file
@@ -68,28 +68,29 @@ if not U.objects.filter(username=os.environ['DJANGO_SUPERUSER_USERNAME']).exists
 # Initaliize the database with default data
 python3 manage.py shell < scripts.py
 
+# Run the server using Gunicorn
+exec gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
+# # Set gunicorn to run on startup (for Linux systems)
+# # Create a systemd service file for gunicorn. The service name is restaurantAPI.service
+# echo "[Unit]
+# Description=Gunicorn for restaurantAPI
+# After=network.target
 
-# Set gunicorn to run on startup (for Linux systems)
-# Create a systemd service file for gunicorn. The service name is restaurantAPI.service
-echo "[Unit]
-Description=Gunicorn for restaurantAPI
-After=network.target
+# [Service]
+# Type=notify
+# User=backend_admin
+# Group=backend_admin
+# WorkingDirectory=/srv/Restaurant-full-stack-project/backend/restaurantAPI
+# EnvironmentFile=/srv/Restaurant-full-stack-project/backend/restaurantAPI/.env
+# ExecStart=/srv/Restaurant-full-stack-project/backend/env/bin/gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
+# ExecReload=/bin/kill -s HUP \$MAINPID
+# Restart=always
+# RestartSec=3
+# KillMode=mixed
 
-[Service]
-Type=notify
-User=backend_admin
-Group=backend_admin
-WorkingDirectory=/srv/Restaurant-full-stack-project/backend/restaurantAPI
-EnvironmentFile=/srv/Restaurant-full-stack-project/backend/restaurantAPI/.env
-ExecStart=/srv/Restaurant-full-stack-project/backend/env/bin/gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py
-ExecReload=/bin/kill -s HUP \$MAINPID
-Restart=always
-RestartSec=3
-KillMode=mixed
+# [Install]
+# WantedBy=multi-user.target" > /etc/systemd/system/restaurantAPI.service
 
-[Install]
-WantedBy=multi-user.target" > /etc/systemd/system/restaurantAPI.service
-
-systemctl daemon-reload
-systemctl enable --now restaurantAPI
-systemctl status restaurantAPI
+# systemctl daemon-reload
+# systemctl enable --now restaurantAPI
+# systemctl status restaurantAPI

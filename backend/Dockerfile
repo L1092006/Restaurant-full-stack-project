@@ -6,6 +6,7 @@ RUN apt update && apt install git -y && apt install python3-venv -y
 ADD . /srv
 WORKDIR /srv
 RUN chmod 774 setup.sh
+RUN python3 -m venv env && env/bin/pip3 install -r requirements.txt
 EXPOSE 8000
 ENTRYPOINT [ "./setup.sh"]
 
