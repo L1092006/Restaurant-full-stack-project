@@ -1,5 +1,3 @@
-
-
 #!/bin/bash
 # This script sets up the chatbot backend
 # FIXME: Do not use this script in production. It is for deployement testing purposes only. In production, use a more secure method to set environment variables and manage secrets.
@@ -18,15 +16,15 @@ pnecone_api_key=$9
 
 
 # Init django
-sudo apt update
-sudo apt install python3-venv -y
+# sudo apt update
+# sudo apt install python3-venv -y
 python3 -m venv env
 source env/bin/activate
 pip3 install -r requirements.txt
 
 
 # Init the .env file
-sudo echo "# Database configurations
+echo "# Database configurations
 DB_NAME=$db_name
 DB_USER=$db_user
 DB_PASSWORD=$db_password
@@ -55,7 +53,7 @@ DEBUG=False" > .env
 
 
 # Create a systemd service file for server. The service name is chatbot.service
-sudo echo "[Unit]
+echo "[Unit]
 Description=Chatbot websocket server
 After=network.target
 
@@ -76,6 +74,6 @@ RestartSec=3
 WantedBy=multi-user.target" > /etc/systemd/system/chatbot.service
 
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now chatbot
-sudo systemctl status chatbot
+systemctl daemon-reload
+systemctl enable --now chatbot
+systemctl status chatbot
