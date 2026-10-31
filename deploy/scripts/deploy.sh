@@ -28,10 +28,10 @@ echo "Deploying backend stack"
 #  App stack
 aws cloudformation deploy --template-file backend_infra.yaml \
   --stack-name $BACKEND_STACKNAME --region $BACKEND_REGION \
-  --parameter-overrides ProjectName=$ProjectName NetworkStackName=$VPC_STACKNAME \
+  --parameter-overrides ProjectName=$ProjectName DockerImageTag=$1 WebBackendImage=$WebBackendImage ChatbotImage=$ChatbotImage NetworkStackName=$VPC_STACKNAME \
     DBPassword=$DBPassword BackendAdminUsername=$BackendAdminUsername BackendAdminPassword=$BackendAdminPassword \
     DjangoKey=$DjangoKey PineconeKey=$PineconeKey OpenRouterKey=$OpenRouterKey S3BucketName=$S3BucketName \
-    CloudALias=$CloudALias KeyPairName=$KeyPairName IAMInstanceProfile=$IAMInstanceProfile
+    CloudFrontAlias=$CloudFrontAlias KeyPairName=$KeyPairName IAMInstanceProfile=$IAMInstanceProfile
 
 echo "Wait for the backend stack to be created"
 aws cloudformation wait stack-create-complete --stack-name $BACKEND_STACKNAME --region $BACKEND_REGION

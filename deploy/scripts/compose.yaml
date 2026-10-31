@@ -1,6 +1,6 @@
 services:
   web_backend:
-    image: loc109/web_backend:v0.1
+    image: loc109/web_backend:v0.3
     ports:
       - 8000:8000
     command:
@@ -14,7 +14,7 @@ services:
       - "${DjangoKey}"
       -  "*"
   chatbot:
-    image: loc109/chatbot:v0.1
+    image: loc109/chatbot:v0.3
     ports:
       - 8001:8001
     command:

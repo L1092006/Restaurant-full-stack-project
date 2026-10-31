@@ -117,12 +117,12 @@ Then, from `deploy/`:
 
 ```bash
 # 1a. Deploy the VPC stack, wait, then the app stack (NetworkStackName = VPC stack name)
-. scripts/deploy.sh
+. scripts/deploy.sh docker_image_tag
 
 # 1b. Or to deploy the minimal version to demo run:
 . scripts/deploy_minimal.sh
 
-# 2. Point the frontend's VITE_BACKEND_URL / VITE_CHATBOT_URL at the new ALB,
+# 2. Point the frontend's VITE_BACKEND_URL / VITE_CHATBOT_URL at the backend url,
 #    then build and upload the SPA and invalidate CloudFront
 . scripts/uploadS3.sh
 

@@ -20,6 +20,15 @@ Parameters:
   Environment:
     Type: String
     Default: dev
+  DockerImageTag:
+    Type: String
+    Default: v0.3
+  WebBackendImage:
+    Type: String
+    Default: loc109/web_backend
+  ChatbotImage:
+    Type: String
+    Default: loc109/chatbot
   NetworkStackName:
     Type: String
     Default: n-stack-restaurant-vpc
@@ -319,25 +328,90 @@ Resources:
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
-            sudo -i
-            cd /srv
-            # Clone the repo, create a new user which becomes the owner of the repo
-            git clone https://github.com/L1092006/Restaurant-full-stack-project.git
-            # disabled login and provide no info
-            adduser --disabled-login --gecos "" backend_admin
-            # Change the ownership to the new user
-            chmod 774 Restaurant-full-stack-project
-            chown -R backend_admin Restaurant-full-stack-project
 
-            # Config web and chatbot backends
-            cd Restaurant-full-stack-project/
-            sudo -u backend_admin git checkout deploy_aws
-            cd backend/
-            chmod 774 setup.sh
-            ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} ${DBName} ${DBUsername} ${DBPassword} ${RDSInstance.Endpoint.Address} 3306 "${DjangoKey}" '*'
-            cd ../chatbot_backend
-            chmod 774 setup.sh
-            ./setup.sh ${BackendAdminUsername} ${BackendAdminPassword} ${DBName} ${DBUsername} ${DBPassword} ${RDSInstance.Endpoint.Address} 3306 ${OpenRouterKey} ${PineconeKey}
+            sudo -i
+            sudo apt update
+
+            apt-get install -y python3-venv
+            python3 -m venv /opt/aws-cfn
+            /opt/aws-cfn/bin/pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+
+
+            # Add Docker's official GPG key:
+            sudo apt install -y ca-certificates curl
+            sudo install -m 0755 -d /etc/apt/keyrings
+            sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+            # Add the repository to Apt sources:
+            sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+            Types: deb
+            URIs: https://download.docker.com/linux/ubuntu
+            Suites: $(. /etc/os-release && echo "${!UBUNTU_CODENAME:-$VERSION_CODENAME}")
+            Components: stable
+            Architectures: $(dpkg --print-architecture)
+            Signed-By: /etc/apt/keyrings/docker.asc
+            EOF
+            sudo apt update
+            sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            cd /srv
+
+            # Create .env 
+            cat >.env <<'EOF'
+            # Parameters
+            DBName=${DBName}
+            DBUsername=${DBUsername}
+            DBPassword=${DBPassword}
+            DBEndpoint=${RDSInstance.Endpoint.Address}
+            DBPort=3306
+            OpenRouterKey=${OpenRouterKey}
+            PineconeKey=${PineconeKey}
+            BackendAdminUsername=${BackendAdminUsername}
+            BackendAdminPassword=${BackendAdminPassword}
+            DjangoKey='${DjangoKey}'
+            EOF
+
+            # Create compose.yaml
+            cat >compose.yaml <<'EOF'
+            services:
+              web_backend:
+                image: ${WebBackendImage}:${DockerImageTag}
+                ports:
+                  - 8000:8000
+                command:
+                  - "${!BackendAdminUsername}"
+                  - "${!BackendAdminPassword}"
+                  - "${!DBName}"
+                  - "${!DBUsername}"
+                  - "${!DBPassword}"
+                  - "${!DBEndpoint}"
+                  - "${!DBPort}"
+                  - "${!DjangoKey}"
+                  -  "*"
+              chatbot:
+                image: ${ChatbotImage}:${DockerImageTag}
+                ports:
+                  - 8001:8001
+                command:
+                  - "${!BackendAdminUsername}"
+                  - "${!BackendAdminPassword}"
+                  - "${!DBName}"
+                  - "${!DBUsername}"
+                  - "${!DBPassword}"
+                  - "${!DBEndpoint}"
+                  - "${!DBPort}"
+                  - "${!OpenRouterKey}"
+                  - "${!PineconeKey}"
+            EOF
+
+            docker compose up -d
+            
+            # Wait until the app really answers (up to ~5 min), then report the result
+            curl -fsS -o /dev/null --retry 30 --retry-delay 10 --retry-all-errors http://localhost:8000/api/items/ && curl -fsS -o /dev/null --retry 30 --retry-delay 10 --retry-all-errors http://localhost:8001/health
+            /opt/aws-cfn/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
 
   # ── Application Load Balancer ─────────────────────────────────────────────
   ApplicationLoadBalancer:
@@ -504,6 +578,16 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
           PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref DesiredInstances
+        Timeout: PT20M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        WaitOnResourceSignals: true
+        PauseTime: PT20M
 
 # ── Outputs ───────────────────────────────────────────────────────────────
 Outputs:
