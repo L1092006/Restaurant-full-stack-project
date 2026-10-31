@@ -26,11 +26,12 @@ httpOnly cookie). MySQL is the datastore.
 ```
 backend/
 ├── requirements.txt          # <-- deps live HERE, not in restaurantAPI/
-├── setup.sh                  # EC2 provisioning script (venv, .env, migrate, systemd)
+├── Dockerfile                # image published as loc109/web_backend
+├── .dockerignore             # keeps .env files, the local venv, and caches out of the image
+├── setup.sh                  # container entrypoint (see Run in Docker)
 └── restaurantAPI/            # Django project root (contains manage.py)
     ├── manage.py
     ├── .env                  # not committed — create this (see Configuration)
-    ├── .env_template_for_deploy
     ├── gunicorn.conf.py      # production gunicorn config (bind 0.0.0.0:8000)
     ├── scripts.py            # menu seed data (3 categories, 16 items)
     ├── restaurantAPI/        # settings, urls, wsgi/asgi, pymysql shim
@@ -39,29 +40,89 @@ backend/
 
 ## Getting started
 
+You need Python 3.12+ and a MySQL server with an empty database (for example
+`CREATE DATABASE the_restaurant;`).
+
 > **Footgun:** `requirements.txt` is in `backend/`, **not** `backend/restaurantAPI/`.
 
-```bash
-# 1. Install dependencies (from backend/)
-cd backend
-pip install -r requirements.txt
+1. Install dependencies, from `backend/`:
 
-# 2. Create backend/restaurantAPI/.env (see Configuration below)
+   ```bash
+   cd backend
+   python -m venv env
+   source env/bin/activate            # Windows: env\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-# 3. From backend/restaurantAPI/, run migrations and the dev server
-cd restaurantAPI
-python manage.py migrate
-python manage.py runserver            # http://127.0.0.1:8000
+2. Create `backend/restaurantAPI/.env` (see [Configuration](#configuration)):
 
-# 4. (optional) seed the menu — 3 categories + 16 items
-python manage.py shell < scripts.py
-```
+   ```dotenv
+   SECRET_KEY=any-long-random-string
+   STAGE=DEV
+   TAX=0.08
+   ALLOWED_ORIGINS=http://localhost:5173
+   DB_NAME=the_restaurant
+   DB_USER=root
+   DB_PASSWORD=your-mysql-password
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   ```
+
+3. From `backend/restaurantAPI/`, create the tables and start the dev server:
+
+   ```bash
+   cd restaurantAPI
+   python manage.py migrate
+   python manage.py runserver            # http://127.0.0.1:8000/api/items/
+   ```
+
+4. *(Optional)* Seed the menu with 3 categories and 16 items:
+
+   ```bash
+   python manage.py shell < scripts.py
+   ```
 
 Production server:
 
 ```bash
 gunicorn restaurantAPI.wsgi:application -c gunicorn.conf.py   # binds 0.0.0.0:8000
 ```
+
+## Run in Docker
+
+This is how the API runs on the AWS servers. Build from the repo root:
+
+```bash
+docker build -t web_backend backend
+```
+
+The container takes its settings as **nine arguments, in this order**:
+
+| # | Argument | Example |
+|---|---|---|
+| 1 | Django admin username | `admin` |
+| 2 | Django admin password | `admin-password` |
+| 3 | Database name | `the_restaurant` |
+| 4 | Database user | `root` |
+| 5 | Database password | `db-password` |
+| 6 | Database host | `host.docker.internal` (MySQL on your machine, with Docker Desktop) |
+| 7 | Database port | `3306` |
+| 8 | Django `SECRET_KEY` | `any-long-random-string` |
+| 9 | `ALLOWED_ORIGINS` | `'*'` |
+
+```bash
+docker run --rm -p 8000:8000 web_backend \
+  admin 'admin-password' the_restaurant root 'db-password' host.docker.internal 3306 'any-long-random-string' '*'
+```
+
+On start, `setup.sh`:
+
+1. Writes `restaurantAPI/.env` from the arguments, with `STAGE=PRE_PROD` and
+   `TAX=0.1` fixed in the script.
+2. Runs `makemigrations` and `migrate`.
+3. Creates the admin user if it doesn't exist.
+4. Seeds the menu, skipping items that already exist.
+5. Starts gunicorn on port 8000.
 
 ## Configuration
 
@@ -158,6 +219,10 @@ gating, and cart ownership/total computation
 
 > **Tests require a live MySQL server** with privileges to create a
 > `test_<DB_NAME>` database. There is no SQLite/test-settings fallback.
+
+GitHub Actions runs this suite on every pull request into `main` and before
+every deploy, against a temporary MySQL 8.4 container (see the
+[root README](../README.md#cicd-github-actions)).
 
 ## Known limitations
 
