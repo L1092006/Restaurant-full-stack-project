@@ -52,6 +52,7 @@ jobs:
           DB_HOST=127.0.0.1
           DB_PORT=3306
           TAX=0.08
+          ALLOWED_ORIGINS='*'
           EOF
 
       - name: run test
