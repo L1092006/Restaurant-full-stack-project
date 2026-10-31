@@ -22,17 +22,74 @@ rather than on the server.
 
 ## Getting started
 
+You need Python 3.12+, a reachable MySQL server, a Pinecone API key, and either
+an OpenRouter API key (`CLOUD=True`) or a running Ollama model (`CLOUD=False`).
+
+1. Install dependencies:
+
+   ```bash
+   cd chatbot_backend
+   python -m venv env
+   source env/bin/activate            # Windows: env\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. Create `chatbot_backend/.env` (see [Configuration](#configuration)):
+
+   ```dotenv
+   CLOUD=True
+   OPENROUTER_MODEL=google/gemini-3-flash-preview
+   OPENROUTER_API_KEY=your-openrouter-key
+   PINECONE_API_KEY=your-pinecone-key
+   INDEX_NAME=your-pinecone-index
+   MODEL_CONTEXT=32000
+   MEMORY_LENGTH=70
+   DEBUG=False
+   DB_NAME=the_restaurant
+   DB_USER=root
+   DB_PASSWORD=your-mysql-password
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   ```
+
+3. Start the server. It creates its MySQL tables on startup:
+
+   ```bash
+   python server.py        # WebSocket on :8001, HTTP GET /health -> 200 (for the ALB)
+   ```
+
+## Run in Docker
+
+This is how the chatbot runs on the AWS servers. Build from the repo root:
+
 ```bash
-cd chatbot_backend
-pip install -r requirements.txt
-
-# Create chatbot_backend/.env (see Configuration)
-
-python server.py        # WebSocket on :8001, HTTP GET /health -> 200 (for the ALB)
+docker build -t chatbot chatbot_backend
 ```
 
-Requirements: a reachable MySQL server, a Pinecone API key, and either an
-OpenRouter API key (`CLOUD=True`) or a running Ollama model (`CLOUD=False`).
+The container takes its settings as **nine arguments, in this order**:
+
+| # | Argument | Notes |
+|---|---|---|
+| 1 | Django admin username | accepted but not used by the chatbot |
+| 2 | Django admin password | accepted but not used by the chatbot |
+| 3 | Database name | e.g. `the_restaurant` |
+| 4 | Database user | |
+| 5 | Database password | |
+| 6 | Database host | `host.docker.internal` for MySQL on your machine (Docker Desktop) |
+| 7 | Database port | `3306` |
+| 8 | OpenRouter API key | |
+| 9 | Pinecone API key | |
+
+```bash
+docker run --rm -p 8001:8001 chatbot \
+  admin unused the_restaurant root 'db-password' host.docker.internal 3306 'openrouter-key' 'pinecone-key'
+```
+
+On start, `setup.sh` writes `.env` from the arguments and then runs
+`python server.py`. The rest of the settings are **fixed in `setup.sh`**:
+`OPENROUTER_MODEL=google/gemini-3-flash-preview`, `MODEL_CONTEXT=32000`,
+`INDEX_NAME=test-webchatbot`, `MEMORY_LENGTH=70`, `CLOUD=True`, and
+`DEBUG=False`. To change them, edit `setup.sh` and rebuild the image.
 
 ## Configuration
 

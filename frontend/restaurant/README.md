@@ -20,13 +20,32 @@ assistant that can drive the app on their behalf. Built with Chakra UI v3.
 
 ## Getting started
 
+You need Node.js 20.19+ or 22.12+ (required by Vite 7).
+
+1. Install dependencies:
+
+   ```bash
+   cd frontend/restaurant
+   npm install
+   ```
+
+2. Create `frontend/restaurant/.env` (see [Configuration](#configuration)):
+
+   ```dotenv
+   VITE_BACKEND_URL=http://localhost:8000/api
+   VITE_CHATBOT_URL=ws://localhost:8001
+   VITE_DEBUG=true
+   ```
+
+3. Start the dev server:
+
+   ```bash
+   npm run dev        # Vite dev server on http://localhost:5173
+   ```
+
+Other commands:
+
 ```bash
-cd frontend/restaurant
-npm install
-
-# Create frontend/restaurant/.env (see Configuration)
-
-npm run dev        # Vite dev server on http://localhost:5173
 npm run build      # production build -> dist/
 npm run preview    # preview the built app
 npm run lint       # eslint .
@@ -39,11 +58,16 @@ There is no test runner configured for the frontend.
 Client env vars must be prefixed `VITE_` and are read via `import.meta.env`.
 Create `frontend/restaurant/.env`:
 
-| Variable | Purpose |
-|---|---|
-| `VITE_BACKEND_URL` | REST API base URL, e.g. `http://localhost:8000/api` |
-| `VITE_CHATBOT_URL` | Chatbot WebSocket URL, e.g. `ws://localhost:8001` |
-| `VITE_DEBUG` | `"true"` to enable console debug logging |
+| Variable | Local example | Production example |
+|---|---|---|
+| `VITE_BACKEND_URL` — REST API base URL | `http://localhost:8000/api` | `https://restaurant-api.loc109.click/api` |
+| `VITE_CHATBOT_URL` — chatbot WebSocket URL | `ws://localhost:8001` | `wss://restaurant-api.loc109.click/chat` |
+| `VITE_DEBUG` — `true` enables console debug logging | `true` | `false` |
+
+Vite builds these values into the JavaScript, so they're public: never put a
+secret in a `VITE_` variable. `.env` is gitignored; for automatic deploys,
+GitHub Actions takes the production values from the `dev` environment's
+variables of the same names.
 
 > **Footgun:** `VITE_BACKEND_URL` **must not end in a slash.** Requests are built
 > as `` `${VITE_BACKEND_URL}${path}` `` and every `path` already starts with `/`,
@@ -124,11 +148,11 @@ auto-reconnects up to a fixed number of attempts.
 
 ## Deployment
 
-The built `dist/` is uploaded to S3 and served through CloudFront (see
-`deploy/`). Build and sync:
+The built `dist/` is uploaded to S3 and served through CloudFront.
 
-```bash
-npm run build
-aws s3 sync dist/ s3://<frontend-bucket> --delete
-aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
-```
+- **Automatically:** every merge to `main` builds the app with the production
+  `VITE_*` values, uploads it, and clears the CloudFront cache (GitHub Actions).
+- **Manually:** set the production values in `.env`, then run
+  `bash ../scripts/uploadS3.sh` from `deploy/cloud_formation_templates`.
+
+See [deploy/README.md](../../deploy/README.md) for the setup of both.
