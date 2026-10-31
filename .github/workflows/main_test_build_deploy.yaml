@@ -1,0 +1,153 @@
+name: test the main branch, build docker images and deploy to AWS
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  Test:
+    runs-on: ubuntu-26.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test-root-password
+          MYSQL_DATABASE: the_restaurant
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: download dependencies
+        run: |
+          cd backend
+          sudo apt update
+          sudo apt install python3-venv -y
+          python3 -m venv env
+          source env/bin/activate
+          pip3 install -r requirements.txt
+
+          # Create .env for restaurant backend
+          cat > restaurantAPI/.env <<'EOF'
+          SECRET_KEY=test-only-not-a-secret
+          STAGE=DEV
+          DB_NAME=the_restaurant
+          DB_USER=root
+          DB_PASSWORD=test-root-password
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          TAX=0.08
+          EOF
+
+      - name: run test
+        run: |
+          cd backend/restaurantAPI
+          source ../env/bin/activate
+          python3 manage.py test
+
+  Build_and_Deploy:
+    needs: Test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    environment: dev
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build and upload web_backend
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/web_backend:${{ github.sha }}
+
+      - name: Build and upload chatbot
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: chatbot_backend
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/chatbot:${{ github.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.BACKEND_REGION }}
+
+      - name: Deploy to AWS
+        env:
+          VPC_STACKNAME: ${{ vars.VPC_STACKNAME }}
+          VPC_REGION: ${{ vars.VPC_REGION }}
+          BACKEND_STACKNAME: ${{ vars.BACKEND_STACKNAME }}
+          BACKEND_REGION: ${{ vars.BACKEND_REGION }}
+          ProjectName: ${{ vars.PROJECTNAME }}
+          S3BucketName: ${{ vars.S3BUCKETNAME }}
+          CloudFrontAlias: ${{ vars.CLOUDFRONTALIAS }}
+          KeyPairName: ${{ secrets.KEYPAIRNAME }}
+          IAMInstanceProfile: ${{ secrets.IAMINSTANCEPROFILE }}
+          WebBackendImage: ${{ vars.WEBBACKENDIMAGE }}
+          ChatbotImage: ${{ vars.CHATBOTIMAGE }}
+          NetworkStackName: ${{ vars.NETWORKSTACKNAME }}
+          DBName: ${{ secrets.DBNAME }}
+          DBUsername: ${{ secrets.DBUSERNAME }}
+          DBPassword: ${{ secrets.DBPASSWORD }}
+          BackendAdminUsername: ${{ secrets.BACKENDADMINUSERNAME }}
+          BackendAdminPassword: ${{ secrets.BACKENDADMINPASSWORD }}
+          DjangoKey: ${{ secrets.DJANGOKEY }}
+          OpenRouterKey: ${{ secrets.OPENROUTERKEY }}
+          PineconeKey: ${{ secrets.PINECONEKEY }}
+        run: |
+          # Create the .env for deploy
+          # %q quotes each value so characters like $ & ( survive when deploy.sh sources the file
+          for name in VPC_STACKNAME VPC_REGION BACKEND_STACKNAME BACKEND_REGION ProjectName \
+                      S3BucketName CloudFrontAlias KeyPairName IAMInstanceProfile WebBackendImage ChatbotImage \
+                      NetworkStackName DBName DBUsername DBPassword BackendAdminUsername BackendAdminPassword DjangoKey OpenRouterKey PineconeKey; do
+            printf '%s=%q\n' "$name" "${!name}"
+          done > deploy/cloud_formation_templates/.env
+
+          . deploy/scripts/deploy.sh ${{ github.sha }}
+
+      - name: Install frontend dependencies
+        working-directory: frontend/restaurant
+        run: npm ci
+
+      - name: Deploy frontend
+        env:
+          S3BucketName: ${{ vars.S3BUCKETNAME }}
+          BACKEND_STACKNAME: ${{ vars.BACKEND_STACKNAME }}
+          # Vite bakes VITE_* environment variables into the build, the same as entries in frontend/restaurant/.env
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
+          VITE_CHATBOT_URL: ${{ vars.VITE_CHATBOT_URL }}
+          VITE_DEBUG: ${{ vars.VITE_DEBUG }}
+        run: . deploy/scripts/uploadS3.sh
+
+
+

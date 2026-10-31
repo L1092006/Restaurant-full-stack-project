@@ -1,2 +1,3 @@
 cloud_formation_templates/.env
 scripts/.env
+scripts/ec2_userdata.sh

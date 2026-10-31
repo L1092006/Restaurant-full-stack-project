@@ -1,0 +1,29 @@
+services:
+  web_backend:
+    image: loc109/web_backend:v0.3
+    ports:
+      - 8000:8000
+    command:
+      - "${BackendAdminUsername}"
+      - "${BackendAdminPassword}"
+      - "${DBName}"
+      - "${DBUsername}"
+      - "${DBPassword}"
+      - "host.docker.internal"
+      - "3306"
+      - "${DjangoKey}"
+      -  "*"
+  chatbot:
+    image: loc109/chatbot:v0.3
+    ports:
+      - 8001:8001
+    command:
+      - "${BackendAdminUsername}"
+      - "${BackendAdminPassword}"
+      - "${DBName}"
+      - "${DBUsername}"
+      - "${DBPassword}"
+      - "host.docker.internal"
+      - "3306"
+      - "${OpenRouterKey}"
+      - "${PineconeKey}"
